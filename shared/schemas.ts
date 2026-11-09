@@ -42,6 +42,10 @@ export const PROFILE_FIELDS = [
   "goals",
   "contact",
   "summary",
+  "courses",
+  "strengths",
+  "languages",
+  "achievements",
 ] as const;
 export type ProfileField = (typeof PROFILE_FIELDS)[number];
 const field = z.string().max(5000);
@@ -57,8 +61,16 @@ export const profileSchema = z
     country: field.max(120).default(""),
     occupation: field.max(300).default(""),
     experience: field.default(""),
-    /** "About me": 2–4 sentences composed from the interview. */
+    /** "About me": composed from the interview. */
     summary: field.default(""),
+    /** Courses, certificates, olympiads and other extra training. */
+    courses: field.default(""),
+    /** Personal qualities (soft skills) with a short proof each. */
+    strengths: field.default(""),
+    /** Languages and levels, e.g. "Русский — родной; английский — B1". */
+    languages: field.default(""),
+    /** Awards, competitions, grades, results worth mentioning. */
+    achievements: field.default(""),
   })
   .strict();
 /**
@@ -93,12 +105,20 @@ export const INTERVIEW_STEPS: ProfileField[] = [
   "country",
   "occupation",
   "education",
+  "courses",
   "experience",
-  "skills",
   "projects",
+  "skills",
+  "strengths",
+  "languages",
+  "achievements",
   "goals",
   "contact",
 ];
+/** Steps the student may skip ("нет", "пропустить") — stored as SKIPPED. */
+export const OPTIONAL_STEPS: ProfileField[] = ["courses", "projects", "strengths", "achievements", "goals", "contact"];
+/** Steps worth one follow-up question when the answer is short (period, duties, results). */
+export const DETAIL_STEPS: ProfileField[] = ["education", "experience", "projects"];
 export function interviewStep(profile: Partial<Record<ProfileField, string>>): ProfileField | null {
   return INTERVIEW_STEPS.find((f) => !profile[f]?.trim()) ?? null;
 }
@@ -109,6 +129,34 @@ export const isSkipped = (value?: string) => value?.trim() === SKIPPED;
 export function resumeExportable(profile: Partial<Record<ProfileField, string>>) {
   const has = (f: ProfileField) => !!profile[f]?.trim() && !isSkipped(profile[f]);
   return has("name") && (["skills", "experience", "education", "projects"] as ProfileField[]).some(has);
+}
+/** Text of a resume section, or "" when the student skipped it. */
+export const sectionText = (value?: string) => (isSkipped(value) ? "" : (value ?? "").trim());
+/**
+ * Keep the stored chat within the database limit (60 messages, ~120 KB):
+ * drop the oldest turns; the profile already holds every fact from them.
+ */
+export function trimHistory<T extends { draft?: unknown; published?: boolean }>(
+  messages: T[],
+  maxMessages = 56,
+  maxChars = 110_000,
+): T[] {
+  // The newest draft and the newest "saved" mark carry state (review / jobs unlocked): never drop them.
+  let lastDraft = -1;
+  let lastSaved = -1;
+  messages.forEach((m, i) => {
+    if (m.draft) lastDraft = i;
+    if (m.published) lastSaved = i;
+  });
+  const pinned = new Set([lastDraft, lastSaved].filter((i) => i >= 0));
+  let start = Math.max(0, messages.length - maxMessages + pinned.size);
+  const build = () => messages.filter((_, i) => i >= start || pinned.has(i));
+  let kept = build();
+  while (start < messages.length - 2 && JSON.stringify(kept).length > maxChars) {
+    start++;
+    kept = build();
+  }
+  return kept;
 }
 /** "Арсений Кутвицкий" → "Арсений_Кутвицкий_резюме" (safe file name in any language). */
 export function resumeFileName(name: string, language: string) {
@@ -223,6 +271,21 @@ export const latestDraft = (messages: { draft?: z.infer<typeof profileSchema> }[
   [...messages].reverse().find((m) => m.draft)?.draft;
 export const isPublished = (messages: { published?: boolean }[]) =>
   messages.some((m) => m.published);
+/**
+ * Where the conversation is: collecting facts, reviewing a composed draft
+ * (not yet saved), or after the resume was saved.
+ */
+export type ChatPhase = "interview" | "review" | "saved";
+export function chatPhase(messages: { draft?: unknown; published?: boolean }[]): ChatPhase {
+  let draftAt = -1;
+  let savedAt = -1;
+  messages.forEach((m, i) => {
+    if (m.draft) draftAt = i;
+    if (m.published) savedAt = i;
+  });
+  if (draftAt > savedAt) return "review";
+  return savedAt >= 0 ? "saved" : "interview";
+}
 export type Message = z.infer<typeof messageSchema>;
 export const jobSchema = z.object({
   id: jobIdSchema,

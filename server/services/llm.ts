@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { Config } from "../config.ts";
-import type { Profile, Job, Message, ChatAction } from "../../shared/schemas.ts";
+import type { Profile, Job, Message, ChatAction, ChatPhase } from "../../shared/schemas.ts";
 /** The model only needs the words, not stored drafts or flags. */
 const plain = (messages: Message[]) => messages.map(({ role, text }) => ({ role, text }));
 import OpenAI from "openai";
@@ -37,7 +37,7 @@ export function createLLM(config: Config) {
    * Per-operation time budgets: a slow provider falls back to offline mode
    * quickly instead of leaving the student staring at "typing…" for a minute.
    */
-  const TIMEOUT = { parse: 20_000, chat: 25_000, match: 25_000, compose: 45_000, letter: 40_000 };
+  const TIMEOUT = { parse: 20_000, chat: 25_000, match: 25_000, compose: 80_000, letter: 40_000 };
   async function structured<T>(
     instructions: string,
     input: unknown,
@@ -45,10 +45,12 @@ export function createLLM(config: Config) {
     name: string,
     signal?: AbortSignal,
     timeout: number = TIMEOUT.parse,
+    maxTokens: number = base.max_output_tokens,
   ) {
     const result = await client.responses.parse(
       {
         ...base,
+        max_output_tokens: maxTokens,
         instructions,
         input: JSON.stringify(input),
         text: { format: zodTextFormat(schema, name) },
@@ -66,6 +68,7 @@ export function createLLM(config: Config) {
       language,
       signal,
       justReady = false,
+      phase = "interview",
     }: {
       profile: Profile;
       messages: Message[];
@@ -73,6 +76,8 @@ export function createLLM(config: Config) {
       signal?: AbortSignal;
       /** The latest answer completed what job matching needs. */
       justReady?: boolean;
+      /** interview → collect facts; review → a draft awaits saving; saved → help after saving. */
+      phase?: ChatPhase;
     }) {
       const stream = await client.responses.create(
         {
@@ -81,9 +86,10 @@ export function createLLM(config: Config) {
             ...profileReadiness(profile),
             step: interviewStep(profile),
             justReady,
+            phase,
           }),
-          // Interview replies are short by design (max ~60 words).
-          max_output_tokens: 300,
+          // Chat replies are short by design (60–90 words).
+          max_output_tokens: 400,
           input: [
             {
               role: "user",
@@ -115,10 +121,11 @@ export function createLLM(config: Config) {
       profile: Profile,
       messages: Message[],
       signal?: AbortSignal,
+      hasDraft = false,
     ): Promise<{ profile: Profile; action: ChatAction }> {
       const { action, ...fields } = await structured(
         parsePrompt,
-        { profile, messages: plain(messages).slice(-12) },
+        { profile, hasDraft, messages: plain(messages).slice(-12) },
         aiParseSchema,
         "resume",
         signal,
@@ -136,11 +143,13 @@ export function createLLM(config: Config) {
     ): Promise<{ message: string; draft: Profile }> {
       const { message, ...fields } = await structured(
         composePrompt(language, !!previous),
-        { profile, previousDraft: previous ?? null, transcript: plain(messages).slice(-24) },
+        { profile, previousDraft: previous ?? null, transcript: plain(messages).slice(-48) },
         aiComposeSchema,
         "resume_draft",
         signal,
         TIMEOUT.compose,
+        // A detailed resume in Russian is long: leave room for every section.
+        8000,
       );
       return { message: message.trim().slice(0, 2000), draft: clampProfile(fields) };
     },

@@ -30,6 +30,9 @@ import {
   latestDraft,
   isPublished,
   interviewStep,
+  chatPhase,
+  trimHistory,
+  OPTIONAL_STEPS,
   isSkipped,
   type ChatAction,
 } from "../shared/schemas.ts";
@@ -49,7 +52,7 @@ export function keepSkipsHonest(before: Profile, after: Profile): Profile {
   const asked = interviewStep(before);
   const fixed = { ...after };
   for (const field of Object.keys(fixed) as (keyof Profile)[]) {
-    if (isSkipped(fixed[field]) && !isSkipped(before[field]) && field !== asked)
+    if (isSkipped(fixed[field]) && !isSkipped(before[field]) && (field !== asked || !OPTIONAL_STEPS.includes(field)))
       fixed[field] = before[field];
   }
   return fixed;
@@ -331,9 +334,9 @@ export function createApp(
     const resume = await getResume(req);
     if (resume.version !== version) throw new HttpError(409, "resume.conflict");
     const history = resume.messages;
-    const messages: Message[] = [...history, { role: "user", text: message }];
-    if (messages.length > 58 || JSON.stringify(messages).length > 120000)
-      throw new HttpError(400, "chat.full");
+    // Long conversations keep their newest turns (the profile holds every fact).
+    const messages: Message[] = trimHistory([...history, { role: "user", text: message }]);
+    const phase = chatPhase(history);
     await streamResponse(res, async (emit, signal) => {
       const offline = fallbackChat(profile, history, message, language);
       const previousDraft = latestDraft(history);
@@ -346,7 +349,7 @@ export function createApp(
       if (!requested) {
         if (ai) {
           try {
-            const result = asParseResult(await ai.parse(profile, messages, signal));
+            const result = asParseResult(await ai.parse(profile, messages, signal, !!previousDraft));
             parsed = keepSkipsHonest(profile, result.profile);
             action = result.action;
           } catch (error) {
@@ -368,10 +371,10 @@ export function createApp(
 
       const finish = async (profileToSave: Profile, assistant: Message) => {
         // Keep only the newest draft in history (drafts are large).
-        const trimmed = assistant.draft
-          ? messages.map(({ draft: _old, ...rest }) => rest)
-          : messages;
-        trimmed.push(assistant);
+        const trimmed = trimHistory([
+          ...(assistant.draft ? messages.map(({ draft: _old, ...rest }) => rest) : messages),
+          assistant,
+        ]);
         if (signal.aborted) return;
         const updated = await saveResume(req, profileToSave, trimmed, version);
         emit("done", { profile: updated.profile, messages: trimmed, version: updated.version, fallback });
@@ -406,18 +409,18 @@ export function createApp(
         return;
       }
 
-      // 2c. Interview: reply with the up-to-date profile.
+      // 2c. Reply in the chat: interview question, draft review, or help after saving.
       const justReady = !profileReadiness(profile).ready && profileReadiness(parsed).ready;
       const result = await generateText(
         req,
         "chat",
         signal,
         emit,
-        (live) => live.chat({ profile: parsed, messages, language, signal, justReady }),
-        () => offline.reply,
+        (live) => live.chat({ profile: parsed, messages, language, signal, justReady, phase }),
+        () => (phase === "interview" ? offline.reply : translate(language, `chat.offline.${phase}`)),
       );
       if (result.fallback) {
-        parsed = offline.profile;
+        if (phase === "interview") parsed = offline.profile;
         fallback = true;
       }
       await finish(parsed, { role: "assistant", text: result.text });

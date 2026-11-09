@@ -1,5 +1,5 @@
 import type { Job, Match, Message, Profile } from "../../shared/schemas.ts";
-import { PROFILE_FIELDS, type ProfileField } from "../../shared/schemas.ts";
+import { PROFILE_FIELDS, INTERVIEW_STEPS, OPTIONAL_STEPS, type ProfileField } from "../../shared/schemas.ts";
 import { translate } from "../../shared/i18n.ts";
 import { resolveLocation, countryName } from "../../shared/geo.ts";
 
@@ -15,7 +15,7 @@ type Field = ProfileField;
 const question = (language: string, field: Field) =>
   translate(language, `fallback.ask.${field}`);
 const firstMissing = (profile: Profile) =>
-  PROFILE_FIELDS.find((field) => !profile[field].trim());
+  INTERVIEW_STEPS.find((field) => !profile[field].trim());
 
 /** Which field did the previous assistant turn ask about, if it was a fallback question? */
 function askedField(messages: Message[]): Field | undefined {
@@ -23,7 +23,7 @@ function askedField(messages: Message[]): Field | undefined {
   // An empty conversation starts with the UI's fixed "what's your full name?" prompt.
   if (!previous) return "name";
   if (previous.role !== "assistant") return undefined;
-  return PROFILE_FIELDS.find((field) =>
+  return INTERVIEW_STEPS.find((field) =>
     ["ru", "en"].some((language) =>
       previous.text.trimEnd().endsWith(question(language, field)),
     ),
@@ -44,7 +44,7 @@ export function fallbackChat(
   const field = askedField(history);
   const declined =
     field &&
-    ["projects", "goals", "contact"].includes(field) &&
+    OPTIONAL_STEPS.includes(field) &&
     /^(нет|не |пропуст|не хочу|no\b|skip|none|-)/i.test(answer.trim());
   const text = declined ? "-" : answer.trim().slice(0, 5000);
   let updated: Profile = field && text ? { ...profile, [field]: text } : profile;
@@ -163,7 +163,7 @@ export function templateLetter(
 /** Offline intent detection for the chat (the AI parse does this when available). */
 export function guessAction(message: string, hasDraft: boolean): "answer" | "compose" | "revise" | "publish" {
   const text = message.toLowerCase();
-  if (hasDraft && /опубликуй|опубликовать|публикуй|publish/.test(text)) return "publish";
+  if (hasDraft && /опубликуй|опубликовать|публикуй|сохрани|publish|save/.test(text)) return "publish";
   if (/состав(ь|ить)|собери|сделай резюме|напиши резюме|compose|build (my )?resume|write (my )?resume/.test(text))
     return "compose";
   if (hasDraft && /измени|поменяй|поправь|исправь|замени|убери|добавь|сократи|change|fix|edit|remove|shorten/.test(text))
@@ -196,6 +196,10 @@ export function composeFallback(profile: Profile, language: string) {
     experience: bullets(profile.experience),
     education: bullets(profile.education),
     projects: bullets(profile.projects),
+    courses: bullets(profile.courses),
+    strengths: bullets(profile.strengths),
+    languages: bullets(profile.languages),
+    achievements: bullets(profile.achievements),
     goals: clean(profile.goals),
     contact: clean(profile.contact),
   };

@@ -2,10 +2,10 @@ import { useEffect, useRef } from "react";
 import type { useWorkspace } from "../hooks/useWorkspace.ts";
 import type { Profile, Message } from "../../shared/schemas.ts";
 import { Sparkles, Send, Check, RotateCcw, Briefcase, FileText, Upload, PenLine } from "lucide-react";
-import { RESUME_SECTIONS, resumeSubtitle } from "../resume.ts";
 import { firstMessage } from "../resume.ts";
 import { BrandWord } from "../Brand.tsx";
 import { chatSegments } from "../chatText.ts";
+import { ResumeDocument } from "../ResumeDocument.tsx";
 import { useLanguage } from "../LanguageContext.tsx";
 
 export default function ChatPage(state: ReturnType<typeof useWorkspace>) {
@@ -200,9 +200,14 @@ export default function ChatPage(state: ReturnType<typeof useWorkspace>) {
               [["name"], "Introduction", true],
               [["city", "country"], "City and country", true],
               [["occupation"], "Field of work", true],
-              [["education", "experience"], "Education or experience", true],
-              [["skills"], "Your skills", true],
+              [["education"], "Education", true],
+              [["courses"], "Courses", false],
+              [["experience"], "Work experience", false],
               [["projects"], "Projects", false],
+              [["skills"], "Your skills", true],
+              [["strengths"], "Personal qualities", false],
+              [["languages"], "Languages", false],
+              [["achievements"], "Achievements", false],
               [["goals"], "Career interests", false],
               [["contact"], "Contact details", false],
             ] as [(keyof Profile)[], string, boolean][]
@@ -257,22 +262,13 @@ function DraftCard({
   const { t } = useLanguage();
   return (
     <article className={`draft-card ${latest ? "" : "draft-old"}`} aria-label={t("Resume draft")}>
-      <header>
-        <span className="draft-badge">{t(latest ? "Draft" : "Previous draft")}</span>
-        <h3>{draft.name || t("Your name")}</h3>
-        <p className="draft-sub">{resumeSubtitle(draft)}</p>
-      </header>
-      {RESUME_SECTIONS.filter(([, key]) => draft[key]?.trim()).map(([label, key]) => (
-        <section key={key}>
-          <h4>{t(label)}</h4>
-          <p>{draft[key]}</p>
-        </section>
-      ))}
+      <span className="draft-badge">{t(latest ? "Draft" : "Previous draft")}</span>
+      <ResumeDocument profile={draft} compact />
       {latest && (
         <footer>
           <button className="primary-button" onClick={onPublish} disabled={busy}>
             <Upload size={16} aria-hidden="true" />
-            {t("Publish resume")}
+            {t("Save resume")}
           </button>
           <span>
             <PenLine size={14} aria-hidden="true" />

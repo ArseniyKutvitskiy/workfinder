@@ -364,7 +364,7 @@ test("offline intent detection for compose / revise / publish", () => {
 });
 
 test("the interview runs to 100% (skips count) and the resume is composed right after the last answer", async (t) => {
-  const almost = { ...emptyProfile, name: "Анна", city: "Ташкент", country: "Узбекистан", occupation: "юрист", education: "ТГЮУ, 2 курс", experience: "Стажировка в нотариальной конторе", skills: "Договоры, Word", projects: "-", goals: "Подработка" };
+  const almost = { ...emptyProfile, name: "Анна", city: "Ташкент", country: "Узбекистан", occupation: "юрист", education: "ТГЮУ, 2 курс", experience: "Стажировка в нотариальной конторе", skills: "Договоры, Word", projects: "-", goals: "Подработка", courses: "-", strengths: "Ответственность", languages: "Русский — родной", achievements: "-" };
   assert.equal(profileReadiness(almost).ready, true);
   assert.equal(profileReadiness(almost).complete, false, "contact not answered yet");
   assert.equal(profileReadiness({ ...almost, contact: "-" }).percent, 100);
@@ -376,6 +376,8 @@ test("the interview runs to 100% (skips count) and the resume is composed right 
   assert.ok(last.draft, "draft composed automatically");
   assert.equal(last.draft.projects, "", "skipped section is not in the resume");
   assert.equal(last.draft.contact, "");
+  assert.equal(last.draft.courses, "", "skipped courses are left out too");
+  assert.match(last.draft.languages, /^• Русский/);
 });
 
 import { keepSkipsHonest } from "../server/app.ts";
@@ -386,6 +388,9 @@ test("only the step being asked can be marked as skipped", () => {
   assert.equal(fixed.city, "Астана");
   assert.equal(fixed.projects, "", "projects was not asked yet");
   assert.equal(fixed.contact, "");
-  const askingContact = { ...emptyProfile, name: "Дана", city: "Астана", country: "Казахстан", occupation: "юрист", education: "КазГЮУ", experience: "Практика", skills: "Word", projects: "-", goals: "Стажировка" };
+  const askingContact = { ...emptyProfile, name: "Дана", city: "Астана", country: "Казахстан", occupation: "юрист", education: "КазГЮУ", experience: "Практика", skills: "Word", projects: "-", goals: "Стажировка", courses: "-", strengths: "-", languages: "Казахский, русский", achievements: "-" };
   assert.equal(keepSkipsHonest(askingContact, { ...askingContact, contact: "-" }).contact, "-");
+  // Required steps can never become "skipped", even when asked.
+  const askingSkills = { ...askingContact, skills: "", contact: "" };
+  assert.equal(keepSkipsHonest(askingSkills, { ...askingSkills, skills: "-" }).skills, "");
 });
