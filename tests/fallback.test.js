@@ -320,8 +320,26 @@ test("chat messages and match/letter calls use separate, generous AI budgets", a
   assert.deepEqual(calls.slice(2, 4).map((c) => c[0]), ["ai-tools-hour", "ai-tools-day"]);
 });
 
+test("no resume before the interview reaches 100%, even when asked or on a short «нет»", async (t) => {
+  const early = { ...emptyProfile, name: "Арсений", city: "Алматы", country: "Казахстан", occupation: "маркетинг" };
+  let composed = 0;
+  for (const action of ["compose", "revise", "publish"]) {
+    const call = await serve(t, {
+      ...fixture(early),
+      llm: {
+        async parse(p) { return { profile: p, action }; },
+        async compose() { composed++; return { message: "x", draft: early }; },
+        async *chat() { yield "Где вы учитесь?"; },
+      },
+    });
+    const done = doneEvent(await (await call("chat", { profile: early, version: 0, message: "нет", language: "ru" })).text());
+    assert.ok(!done.messages.some((m) => m.draft), action + " must not compose early");
+  }
+  assert.equal(composed, 0);
+});
+
 test("compose → draft in chat → publish copies the draft into the resume", async (t) => {
-  const facts = { ...emptyProfile, name: "Арсений", city: "Алматы", country: "Казахстан", occupation: "веб-разработчик", education: "Школа", skills: "React" };
+  const facts = { ...emptyProfile, name: "Арсений", city: "Алматы", country: "Казахстан", occupation: "веб-разработчик", education: "Школа", skills: "React", courses: "-", experience: "Опыта пока нет", projects: "-", strengths: "-", languages: "Русский", achievements: "-", goals: "-", contact: "-" };
   const polished = { ...facts, occupation: "Junior веб-разработчик", summary: "Начинающий веб-разработчик.", skills: "React, Claude Code" };
   let composed = 0;
   const call = await serve(t, {
@@ -343,7 +361,7 @@ test("compose → draft in chat → publish copies the draft into the resume", a
 });
 
 test("offline: typed 'составь резюме' composes from facts and only one draft is kept", async (t) => {
-  const facts = { ...emptyProfile, name: "Анна", city: "Ташкент", country: "Узбекистан", occupation: "бухгалтер", education: "ТГЭУ, 3 курс", experience: "Опыта пока нет", skills: "Excel, 1С" };
+  const facts = { ...emptyProfile, name: "Анна", city: "Ташкент", country: "Узбекистан", occupation: "бухгалтер", education: "ТГЭУ, 3 курс", skills: "Excel, 1С", courses: "-", experience: "Опыта пока нет", projects: "-", strengths: "-", languages: "Русский", achievements: "-", goals: "-", contact: "-" };
   const call = await serve(t, { ...fixture(facts), llm: null });
   const one = doneEvent(await (await call("chat", { profile: facts, version: 0, message: "Составь резюме", language: "ru" })).text());
   assert.match(one.messages.at(-1).draft.education, /^• ТГЭУ/);

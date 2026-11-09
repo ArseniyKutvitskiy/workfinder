@@ -362,12 +362,10 @@ export function createApp(
         // Offline: the guided interview records the answer itself.
         if ((!ai || fallback) && action === "answer") parsed = offline.profile;
       }
-      // "Change X" before any draft exists is just an answer.
-      if (action === "revise" && !previousDraft) action = "compose";
-      if (action === "publish" && !previousDraft) action = "compose";
-      // When every interview question is answered, compose without waiting to be asked.
-      if (action === "answer" && !previousDraft && profileReadiness(parsed).complete)
-        action = "compose";
+      // Before the first draft the interview runs to 100%: no early resume, whatever
+      // the latest message looked like ("нет" is an answer, not "publish").
+      // The last answer composes the resume without waiting to be asked.
+      if (!previousDraft) action = profileReadiness(parsed).complete ? "compose" : "answer";
 
       const finish = async (profileToSave: Profile, assistant: Message) => {
         // Keep only the newest draft in history (drafts are large).
