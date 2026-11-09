@@ -115,7 +115,7 @@ function AuthForm({
   initialNotice: string;
 }) {
   const { client, authConfig } = useAuth(),
-    { t, language } = useLanguage();
+    { t } = useLanguage();
   // On-site Google button when configured; the redirect flow is the fallback.
   const [gsiFailed, setGsiFailed] = useState(false);
   const onSiteGoogle = !!authConfig.googleClientId && !gsiFailed;
@@ -267,7 +267,8 @@ function AuthForm({
               <GoogleButton
                 client={client}
                 clientId={authConfig.googleClientId!}
-                language={language}
+                label={t("Continue with Google")}
+                busyLabel={t("Please wait…")}
                 onError={setNotice}
                 onUnavailable={() => setGsiFailed(true)}
               />

@@ -222,9 +222,37 @@ export function createApp(
     res.json({
       supabaseUrl: config.SUPABASE_URL,
       supabaseAnonKey: config.SUPABASE_ANON_KEY,
-      ...(config.GOOGLE_CLIENT_ID ? { googleClientId: config.GOOGLE_CLIENT_ID } : {}),
+      ...(config.GOOGLE_CLIENT_ID && config.GOOGLE_CLIENT_SECRET
+        ? { googleClientId: config.GOOGLE_CLIENT_ID }
+        : {}),
     }),
   );
+  /**
+   * On-site Google sign-in: the popup returns a one-time authorization code,
+   * which only the server can exchange (it needs the client secret). The ID
+   * token goes back to the browser, and Supabase verifies it on sign-in.
+   */
+  app.post("/api/auth/google", async (req, res) => {
+    if (!config.GOOGLE_CLIENT_ID || !config.GOOGLE_CLIENT_SECRET)
+      throw new HttpError(404, "auth.googleDisabled");
+    const { code } = z.object({ code: z.string().min(10).max(2048) }).parse(req.body);
+    const response = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        code,
+        client_id: config.GOOGLE_CLIENT_ID,
+        client_secret: config.GOOGLE_CLIENT_SECRET,
+        redirect_uri: "postmessage",
+        grant_type: "authorization_code",
+      }),
+      signal: AbortSignal.timeout(10_000),
+    }).catch(() => null);
+    const body = (await response?.json().catch(() => null)) as { id_token?: unknown } | null;
+    if (!response?.ok || typeof body?.id_token !== "string")
+      throw new HttpError(401, "auth.googleFailed");
+    res.json({ idToken: body.id_token });
+  });
   app.use("/api", database.authenticate);
   /**
    * Per-user AI budgets (cost protection). Chat turns are cheap and an

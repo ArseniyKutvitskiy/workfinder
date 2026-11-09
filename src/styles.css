@@ -3596,15 +3596,10 @@ footer {
   color: var(--muted);
 }
 
-/* ---- On-site Google sign-in button (Google Identity Services iframe) ---- */
+/* ---- On-site Google sign-in button (own design, Google logo) ---- */
 .google-button {
-  width: 100%;
-  min-height: 44px;
-  display: flex;
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
-  color-scheme: light;
-}
-.google-button[data-busy] {
-  opacity: 0.55;
-  pointer-events: none;
+  gap: 10px;
 }

@@ -40,6 +40,8 @@ const schema = z.object({
   CAREERJET_API_KEY: optional(z.string()),
   // Public OAuth client ID: enables the on-site Google button (no supabase.co on the consent screen).
   GOOGLE_CLIENT_ID: optional(z.string().regex(/^[\w.-]+\.apps\.googleusercontent\.com$/)),
+  // Same secret as in Supabase → Providers → Google; used only to exchange the sign-in code.
+  GOOGLE_CLIENT_SECRET: optional(z.string().min(10)),
   ADZUNA_APP_ID: optional(z.string()),
   ADZUNA_APP_KEY: optional(z.string()),
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(3).default(0),
