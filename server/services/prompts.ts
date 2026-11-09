@@ -53,12 +53,14 @@ ${STYLE(language, 80)}
 The student's full resume draft is shown above the chat with a ${SAVE(language)} button. They have not saved it yet. ${SCOPE}
 - If they approve the draft or say everything is fine, thank them briefly and ask them to press ${SAVE(language)} (it will appear in ${MY_RESUME(language)} and jobs will be matched to it).
 - If they ask a question about the resume or job search, answer briefly, then remind them they can write any change or press ${SAVE(language)}.
+- If they ask you to invent, "come up with" or add skills, experience or achievements they do not have: say kindly and briefly that the resume may contain only what they really know (employers check it in the interview), then list 6–8 skills typical for their target role as a short numbered list and ask which of them they actually know or have tried — those will be added. You may also name 1–2 skills worth learning first.
 - Do not ask interview questions again and do not rewrite the resume in the chat.`;
   if (context.phase === "saved")
     return `${safety}
 ${STYLE(language, 90)}
 The student's resume is saved in ${MY_RESUME(language)}. ${SCOPE}
-Help briefly with their career questions (job search, interviews, cover letters, what to improve). If they want to change the resume, tell them to write exactly what to change and you will prepare a new version.`;
+Help briefly with their career questions (job search, interviews, cover letters, what to improve). If they want to change the resume, tell them to write exactly what to change and you will prepare a new version.
+- If they ask you to invent, "come up with" or add skills, experience or achievements they do not have: say kindly and briefly that the resume may contain only what they really know (employers check it in the interview), then list 6–8 skills typical for their target role as a short numbered list and ask which of them they actually know or have tried — those will be added. You may also name 1–2 skills worth learning first.`;
   return `${safety}
 ${STYLE(language, 60)}
 You interview the student in a chat to collect the facts for a detailed, professional resume. Go through ALL steps, including the optional ones — "нет" / "пропустить" is a valid answer there. You do NOT write resume lines yet: right after the last answer the full resume is composed automatically and the student reviews it.
@@ -66,6 +68,7 @@ ${FIELD_GUIDE}
 The profile below is up to date, including the student's latest message. Next step: ${context.step ? STEP_NAMES[context.step] ?? context.step : "all steps done"}. Do not re-ask steps that are already filled unless the answer is unclear or contradictory.
 Details make the resume strong: if the student's latest answer about education, experience or projects is very short (no period, no specifics of what they did, no result), first ask ONE short follow-up for those details instead of moving on. Ask at most one follow-up per step — if you already asked one (see the transcript), move on to the next step.
 ${SCOPE}
+If they ask you to invent or "come up with" skills or experience, say kindly that the resume may contain only what they really know, list 6–8 typical options for their target role as a short numbered list and ask which ones they know.
 The resume is composed only after ALL steps: if the student asks for the resume earlier, say briefly that only a few questions remain and ask the next one. A short "нет" answers the current question (e.g. no courses, no experience yet) — accept it and move on.
 Style: acknowledge the answer in a few words, then ask exactly ONE question (a short list only when suggesting 2–3 role options). If an answer is unclear or does not fit the question, ask a short clarifying question instead of guessing.
 ${
@@ -100,6 +103,7 @@ Fields (plain text, "\n" for new lines, no markdown):
 - strengths: one line per quality starting with "• ": the quality, then " — " and how it shows, using their own example when available, otherwise a short neutral explanation of how it helps at work (no invented events).
 - languages: one line per language starting with "• " with level (e.g. «• Русский — родной»).
 - achievements: one line per achievement starting with "• ".
+- If the student asked to invent or add skills, experience or achievements they did not state, do NOT add them; keep the facts and, in the message, list 6–8 skills typical for the target role as a numbered list and ask which ones they really know.
 - A field equal to "-" means the student skipped that section: return an empty string for it. Empty fields stay empty.
 Example of the expected depth (Russian), for the fact «работал бариста в Coffee Boom с 2024 по 2025, готовил кофе, работал на кассе, обучил двух новых сотрудников, выручка смены выросла на 10%»:
 Бариста — Coffee Boom, 2024–2025
@@ -119,8 +123,9 @@ Skipping: courses, projects, strengths, achievements, goals, contact may be set 
 action = what the student's LATEST message asks for. The input says whether a composed draft exists (hasDraft).
 - "compose" if they ask to build/write/make the full resume now.
 - "revise" if hasDraft and they ask to change, add, remove, shorten, rephrase or fix something in the draft, OR they answer one of the improvement questions the assistant asked about the draft with new facts.
-- "publish" if hasDraft and they explicitly ask to save/publish/finish the resume.
-- otherwise "answer" (including approval like «всё нравится» without asking to save, and questions).`;
+- "publish" ONLY if hasDraft and they explicitly ask to save or publish the resume now (words like «сохрани», «опубликуй», «save»). Complaints, doubts and requests to add or change something are never "publish".
+- otherwise "answer" (including approval like «всё нравится» without asking to save, questions, doubts, and requests to invent or suggest skills or experience they did not state — the assistant then offers options to choose from).
+Picking from options: if the student picks skills or items the assistant suggested earlier (e.g. «1, 3 и 5», «React и Git знаю»), those picked items ARE facts now: add them to the field and set action "revise" when hasDraft.`;
 
 export const matchPrompt = (language: string) =>
   `${safety} Compare job requirements against the resume. Return integer score 0-100, lists of supported matching skills and missing requirements, and a concise explanation in ${language === "ru" ? "Russian" : "English"}. Consider occupation, summary, skills, experience, projects, courses, languages and education. Score only evidence in the resume, not demographics. Treat missing evidence as unknown; do not invent qualifications. Explain important gaps. This is career advice, not employer screening.`;

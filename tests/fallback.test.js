@@ -412,3 +412,45 @@ test("only the step being asked can be marked as skipped", () => {
   const askingSkills = { ...askingContact, skills: "", contact: "" };
   assert.equal(keepSkipsHonest(askingSkills, { ...askingSkills, skills: "-" }).skills, "");
 });
+
+import { saysSave } from "../server/app.ts";
+test("the resume is saved only by the button or an explicit «сохрани», never by a misread request", async (t) => {
+  assert.equal(saysSave("Сохрани резюме"), true);
+  assert.equal(saysSave("опубликуй"), true);
+  assert.equal(saysSave("навыки, придумай мне что-то, мне кажется с такими навыками мне откажут"), false);
+  assert.equal(saysSave("пока не сохраняй, поменяй навыки"), false);
+  const facts = { ...emptyProfile, name: "Арсений", city: "Алматы", country: "Казахстан", occupation: "веб-разработчик", education: "Школа", skills: "HTML", courses: "-", experience: "-", projects: "-", strengths: "-", languages: "Русский", achievements: "-", goals: "-", contact: "-" };
+  const history = [{ role: "assistant", text: "Черновик", draft: facts }];
+  let chatPhaseSeen;
+  const call = await serve(t, {
+    ...fixture(facts, history),
+    llm: {
+      async parse(p) { return { profile: p, action: "publish" }; },
+      async *chat(args) { chatPhaseSeen = args.phase; yield "Какие из этих навыков вы знаете? 1. CSS 2. JavaScript"; },
+    },
+  });
+  const done = doneEvent(await (await call("chat", { profile: facts, version: 0, message: "навыки, придумай мне что-то как разработчику сайтов", language: "ru" })).text());
+  assert.ok(!done.messages.some((m) => m.published), "not saved");
+  assert.equal(chatPhaseSeen, "review", "the assistant answers in the review phase");
+});
+
+test("«придумай навыки» adds nothing; picking from the options with a misread «publish» revises", async (t) => {
+  const facts = { ...emptyProfile, name: "Арсений", city: "Алматы", country: "Казахстан", occupation: "веб-разработчик", education: "Школа", skills: "HTML", courses: "-", experience: "-", projects: "-", strengths: "-", languages: "Русский", achievements: "-", goals: "-", contact: "-" };
+  const history = [{ role: "assistant", text: "Черновик", draft: facts }];
+  let composedWith;
+  const call = await serve(t, {
+    ...fixture(facts, history),
+    llm: {
+      // The model sometimes adds suggested skills and misreads the intent.
+      async parse(p, m) { return { profile: { ...p, skills: "HTML, CSS, JavaScript" }, action: m.at(-1).text.includes("придумай") ? "revise" : "publish" }; },
+      async compose(p) { composedWith = p; return { message: "Добавил навыки", draft: p }; },
+      async *chat() { yield "Какие из них вы знаете?"; },
+    },
+  });
+  const ideas = doneEvent(await (await call("chat", { profile: facts, version: 0, message: "придумай мне навыки", language: "ru" })).text());
+  assert.equal(ideas.profile.skills, "HTML", "nothing invented");
+  assert.equal(composedWith, undefined, "no new draft for a request for ideas");
+  const picked = doneEvent(await (await call("chat", { profile: facts, version: ideas.version, message: "CSS и JavaScript знаю", language: "ru" })).text());
+  assert.ok(!picked.messages.some((m) => m.published), "not saved");
+  assert.equal(composedWith.skills, "HTML, CSS, JavaScript", "picked skills go into a new version");
+});

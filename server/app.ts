@@ -58,6 +58,14 @@ export function keepSkipsHonest(before: Profile, after: Profile): Profile {
   return fixed;
 }
 
+/** Typed requests that really mean "save the resume" (the button sends the action itself). */
+const EXPLICIT_SAVE = /сохран|опублик|публикуй|\bsave\b|\bpublish/i;
+const NEGATED_SAVE = /не\s+(сохран|публик|опублик)|don'?t\s+(save|publish)/i;
+export const saysSave = (message: string) => EXPLICIT_SAVE.test(message) && !NEGATED_SAVE.test(message);
+/** "Придумай / выдумай / сочини мне навыки" — a request for ideas, never a source of facts. */
+export const asksToInvent = (message: string) =>
+  /придума|выдума|сочини|нафантазир|\binvent|make (something|some|it) up|come up with/i.test(message);
+
 /** Accept both the {profile, action} parse result and a bare profile (test doubles). */
 function asParseResult(value: unknown): { profile: Profile; action: ChatAction } {
   const v = value as { profile?: Profile; action?: ChatAction };
@@ -366,6 +374,19 @@ export function createApp(
       // the latest message looked like ("нет" is an answer, not "publish").
       // The last answer composes the resume without waiting to be asked.
       if (!previousDraft) action = profileReadiness(parsed).complete ? "compose" : "answer";
+      // Saving is the student's decision: the button, or words that explicitly say so.
+      // A misread request ("придумай навыки…") must never save the resume silently.
+      // "Придумай мне навыки" asks for ideas, not facts: nothing new goes into the resume;
+      // the assistant offers options and the student picks what is true.
+      if (!requested && asksToInvent(message)) {
+        parsed = profile;
+        action = "answer";
+      }
+      if (!requested && previousDraft) {
+        // A misread "publish" (e.g. "CSS и JavaScript знаю") with new facts is a revision.
+        if (action === "publish" && !saysSave(message))
+          action = JSON.stringify(parsed) !== JSON.stringify(profile) ? "revise" : "answer";
+      }
 
       const finish = async (profileToSave: Profile, assistant: Message) => {
         // Keep only the newest draft in history (drafts are large).
