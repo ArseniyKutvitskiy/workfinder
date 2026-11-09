@@ -5,6 +5,7 @@ import { Sparkles, Send, Check, RotateCcw, Briefcase, FileText, Upload, PenLine 
 import { RESUME_SECTIONS, resumeSubtitle } from "../resume.ts";
 import { firstMessage } from "../resume.ts";
 import { BrandWord } from "../Brand.tsx";
+import { chatSegments } from "../chatText.ts";
 import { useLanguage } from "../LanguageContext.tsx";
 
 export default function ChatPage(state: ReturnType<typeof useWorkspace>) {
@@ -97,7 +98,13 @@ export default function ChatPage(state: ReturnType<typeof useWorkspace>) {
                     {message.role === "assistant" ? <BrandWord /> : t("You")}
                   </span>
                   {message.text ? (
-                    <p>{message.text}</p>
+                    <p>
+                      {message.role === "assistant"
+                        ? chatSegments(message.text).map((part, i) =>
+                            part.bold ? <strong key={i}>{part.text}</strong> : part.text,
+                          )
+                        : message.text}
+                    </p>
                   ) : (
                     <p className="typing" aria-label={t("Putting your answer into place…")}>
                       <span />
