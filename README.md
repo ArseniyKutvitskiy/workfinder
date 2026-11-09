@@ -192,9 +192,23 @@ Supabase setup and Google activation were verified earlier; authenticated regres
 
 ## 7. Deployment guide
 
-### Option A: Render (recommended, single service)
+### Option A: Vercel (recommended)
+
+The repository is ready for Vercel: `vercel.json` builds the frontend into `dist/` (served by the CDN) and runs the whole Express API as one Vercel Function (`api/index.js`, compiled from `server/` by `pnpm build`). Streaming (SSE) works; `maxDuration` is 120 s, above the longest AI stream (110 s).
 
 1. Push the repository to GitHub **without** any `.env*` files (`.gitignore` already excludes them).
+2. Supabase: apply all migrations in `supabase/migrations/` in order (SQL editor or `supabase db push`).
+3. Vercel → **Add New → Project** → import the repo. Framework, build and output settings come from `vercel.json`; do not override them.
+4. **Settings → Environment Variables** (Production): `NODE_ENV=production`, `TRUST_PROXY_HOPS=1`, `APP_ORIGIN` (exact public origin, e.g. `https://workfinder.careers` — no trailing slash, must match the domain users open, including `www`), `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `OPENAI_API_KEY`, `HH_USER_AGENT`, and optionally `HH_ACCESS_TOKEN`, `CAREERJET_API_KEY`, `ADZUNA_APP_ID`/`ADZUNA_APP_KEY`. If the install step cannot find pnpm 11, also add `ENABLE_EXPERIMENTAL_COREPACK=1`.
+5. Deploy. Add your domain under **Settings → Domains**, set `APP_ORIGIN` to it and redeploy.
+6. Supabase → Authentication → URL Configuration: Site URL = your origin; add `https://your-origin/**` to the redirect URLs.
+7. Smoke test: `https://your-origin/api/ready` returns `{"status":"ready","ai":"live"}`; then sign in, run a chat, search jobs, generate a letter.
+
+Notes: API requests are accepted only from `APP_ORIGIN`, so preview deployments (`*.vercel.app`) cannot call the API unless you point `APP_ORIGIN` at them. The Hobby plan is for non-commercial use only; switch to Pro before monetising. Process memory (AI circuit breaker, in-flight search dedupe) is per instance; rate limits and the job cache live in Supabase.
+
+### Option B: Render (single long-lived service)
+
+1. Push the repository to GitHub **without** any `.env*` files.
 2. Supabase: apply both migrations (`supabase db push`, or paste `supabase/migrations/*.sql` into the SQL editor in order).
 3. Render dashboard → **New → Blueprint** → select the repo. `render.yaml` defines the build (`pnpm install --frozen-lockfile && pnpm build`), start (`pnpm start`), health check (`/api/ready`) and Node 22.
 4. Fill in the secret env vars Render prompts for: `APP_ORIGIN` (e.g. `https://workfinder.onrender.com`), the three Supabase values, and optionally `OPENAI_API_KEY`, `HH_ACCESS_TOKEN`, `JOOBLE_API_KEY`, `HH_USER_AGENT`.
@@ -204,7 +218,7 @@ Supabase setup and Google activation were verified earlier; authenticated regres
 
 The blueprint uses the paid `starter` plan, which has no cold starts (important during judging). The free plan works too but sleeps after inactivity; change `plan:` in `render.yaml` if cost matters more than first-load latency.
 
-### Option B: Docker (any VM, AWS ECS/Fargate, Fly.io, Railway)
+### Option C: Docker (any VM, AWS ECS/Fargate, Fly.io, Railway)
 
 ```sh
 docker build -t workfinder .
@@ -212,25 +226,6 @@ docker run --rm -p 3000:3000 --env-file .env.production workfinder
 ```
 
 Multi-stage, non-root image with a built-in health check. Put it behind HTTPS, set `APP_ORIGIN` to the public URL and `TRUST_PROXY_HOPS=1`. Set proxy/load-balancer idle timeouts to at least 120 s and disable response buffering so SSE streams incrementally. Inject secrets through the platform's secret manager; never bake them into the image.
-
-### Option C: Vercel frontend with the backend elsewhere
-
-The backend is a long-lived Express server with SSE streams of up to 110 seconds, so it does not run as Vercel serverless functions. To serve the static frontend from Vercel, deploy the backend with Option A or B, then add a `vercel.json`:
-
-```json
-{
-  "buildCommand": "pnpm exec vite build",
-  "outputDirectory": "dist",
-  "rewrites": [
-    { "source": "/api/:path*", "destination": "https://YOUR-BACKEND-HOST/api/:path*" },
-    { "source": "/robots.txt", "destination": "https://YOUR-BACKEND-HOST/robots.txt" },
-    { "source": "/sitemap.xml", "destination": "https://YOUR-BACKEND-HOST/sitemap.xml" },
-    { "source": "/(.*)", "destination": "/index.html" }
-  ]
-}
-```
-
-Set the backend's `APP_ORIGIN` to the Vercel origin and add it to the Supabase redirect URLs. Verify streaming through the rewrite before relying on it; Option A is the tested path.
 
 ### Pre-launch checklist
 
