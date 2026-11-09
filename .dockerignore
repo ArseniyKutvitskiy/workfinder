@@ -1,0 +1,10 @@
+node_modules
+.pnpm-store
+dist
+.git
+.env*
+.key-setup
+preview*.jpg
+test-output
+
+build-server
