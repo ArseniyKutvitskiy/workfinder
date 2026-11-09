@@ -11,6 +11,7 @@ import LanguageSwitcher from "./LanguageSwitcher.tsx";
 import { Splash, SplashError } from "./Splash.tsx";
 import { Brand } from "./Brand.tsx";
 import { setAuthClient } from "./api.ts";
+import { GoogleButton } from "./GoogleButton.tsx";
 import {
   consumeOAuthError,
   googleAvailable,
@@ -19,8 +20,9 @@ import {
 const AuthContext = createContext<{
   client: SupabaseClient;
   session: Session | null;
-  authConfig: { supabaseUrl: string; supabaseAnonKey: string };
+  authConfig: AuthConfig;
 } | null>(null);
+type AuthConfig = { supabaseUrl: string; supabaseAnonKey: string; googleClientId?: string };
 export const useAuth = () => {
   const value = useContext(AuthContext);
   if (!value) throw Error("Missing AuthProvider");
@@ -33,10 +35,7 @@ export function AuthProvider({ children }: React.PropsWithChildren) {
     [error, setError] = useState(""),
     [recovery, setRecovery] = useState(false);
   const { t } = useLanguage();
-  const [authConfig, setAuthConfig] = useState<{
-    supabaseUrl: string;
-    supabaseAnonKey: string;
-  } | null>(null);
+  const [authConfig, setAuthConfig] = useState<AuthConfig | null>(null);
   const [callbackError] = useState(() =>
     consumeOAuthError(window.location, window.history),
   );
@@ -116,7 +115,10 @@ function AuthForm({
   initialNotice: string;
 }) {
   const { client, authConfig } = useAuth(),
-    { t } = useLanguage();
+    { t, language } = useLanguage();
+  // On-site Google button when configured; the redirect flow is the fallback.
+  const [gsiFailed, setGsiFailed] = useState(false);
+  const onSiteGoogle = !!authConfig.googleClientId && !gsiFailed;
   const [mode, setMode] = useState("signin"),
     [email, setEmail] = useState(""),
     [password, setPassword] = useState(""),
@@ -261,13 +263,23 @@ function AuthForm({
         </form>
         {!recovery && (
           <>
-            <button
-              className="secondary-button"
-              onClick={google}
-              disabled={busy}
-            >
-              {t("Continue with Google")}
-            </button>
+            {onSiteGoogle ? (
+              <GoogleButton
+                client={client}
+                clientId={authConfig.googleClientId!}
+                language={language}
+                onError={setNotice}
+                onUnavailable={() => setGsiFailed(true)}
+              />
+            ) : (
+              <button
+                className="secondary-button"
+                onClick={google}
+                disabled={busy}
+              >
+                {t("Continue with Google")}
+              </button>
+            )}
             <div className="flex flex-wrap gap-3">
               {["signin", "signup", "reset"]
                 .filter((x) => x !== mode)

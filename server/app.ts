@@ -142,9 +142,15 @@ export function createApp(
           ? {
               directives: {
                 defaultSrc: ["'self'"],
-                scriptSrc: ["'self'"],
-                styleSrc: ["'self'", "'unsafe-inline'"],
-                connectSrc: ["'self'", new URL(config.SUPABASE_URL).origin],
+                // accounts.google.com/gsi: the on-site "Sign in with Google" button.
+                scriptSrc: ["'self'", "https://accounts.google.com/gsi/client"],
+                styleSrc: ["'self'", "'unsafe-inline'", "https://accounts.google.com/gsi/style"],
+                frameSrc: ["https://accounts.google.com/gsi/"],
+                connectSrc: [
+                  "'self'",
+                  new URL(config.SUPABASE_URL).origin,
+                  "https://accounts.google.com/gsi/",
+                ],
                 // Google profile photos for signed-in users (see src/Avatar.tsx).
                 imgSrc: ["'self'", "data:", "https://lh3.googleusercontent.com"],
                 objectSrc: ["'none'"],
@@ -152,6 +158,8 @@ export function createApp(
               },
             }
           : false,
+      // The Google sign-in popup must be able to message this window back.
+      crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
     }),
   );
   app.use((req, res, next) => {
@@ -214,6 +222,7 @@ export function createApp(
     res.json({
       supabaseUrl: config.SUPABASE_URL,
       supabaseAnonKey: config.SUPABASE_ANON_KEY,
+      ...(config.GOOGLE_CLIENT_ID ? { googleClientId: config.GOOGLE_CLIENT_ID } : {}),
     }),
   );
   app.use("/api", database.authenticate);

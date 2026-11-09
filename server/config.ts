@@ -38,6 +38,8 @@ const schema = z.object({
   HH_ACCESS_TOKEN: optional(z.string()),
   JOOBLE_API_KEY: optional(z.string()),
   CAREERJET_API_KEY: optional(z.string()),
+  // Public OAuth client ID: enables the on-site Google button (no supabase.co on the consent screen).
+  GOOGLE_CLIENT_ID: optional(z.string().regex(/^[\w.-]+\.apps\.googleusercontent\.com$/)),
   ADZUNA_APP_ID: optional(z.string()),
   ADZUNA_APP_KEY: optional(z.string()),
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(3).default(0),

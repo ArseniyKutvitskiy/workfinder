@@ -3595,3 +3595,16 @@ footer {
   font-size: 12.5px;
   color: var(--muted);
 }
+
+/* ---- On-site Google sign-in button (Google Identity Services iframe) ---- */
+.google-button {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  justify-content: center;
+  color-scheme: light;
+}
+.google-button[data-busy] {
+  opacity: 0.55;
+  pointer-events: none;
+}
