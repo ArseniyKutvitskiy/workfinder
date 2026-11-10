@@ -101,8 +101,7 @@ export function useWorkspace() {
         if (!active) return;
         updateProfile(data.profile);
         setFilters(personalFilters(data.profile));
-        // Chat first: until the resume is ready, the assistant is the home screen.
-        if (!profileReadiness(data.profile).ready) setView("chat");
+        // Everyone lands on Overview; it leads to the assistant when the resume is not ready.
         setMessages(data.messages);
         setSaved(data.saved);
         setLetters(data.letters);
