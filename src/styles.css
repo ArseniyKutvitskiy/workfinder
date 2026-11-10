@@ -4186,3 +4186,21 @@ footer {
 .resume-side .ai-note {
   margin: 0 4px;
 }
+
+/* Footer always sits at the bottom of the page, even when a page is short.
+   The main area fills the viewport below the top bar; the sticky offset pushes
+   the footer to the end of it without changing the flow of the content above. */
+.main-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+.main-shell > main {
+  flex: 1 0 auto;
+  width: 100%;
+  margin: 0 auto;
+}
+.main-shell > main > footer {
+  position: sticky;
+  top: 100vh;
+}
