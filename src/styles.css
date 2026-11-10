@@ -1262,7 +1262,6 @@ footer > span:last-child {
   margin-bottom: 27px;
 }
 .resume-paper h1 {
-  font-family: Georgia, serif;
   font-size: 29px;
   font-weight: 500;
   color: #294636;
@@ -3462,9 +3461,9 @@ footer {
   letter-spacing: 0.3px;
 }
 .draft-card h3 {
-  font-family: Georgia, "Times New Roman", serif;
   font-size: 22px;
-  font-weight: 500;
+  font-weight: 600;
+  letter-spacing: -0.6px;
 }
 .draft-sub {
   margin: 2px 0 0;
@@ -3619,11 +3618,11 @@ footer {
 }
 .resume-doc .resume-doc-head h2 {
   margin: 0;
-  font-family: Georgia, "Times New Roman", serif;
   font-size: 30px;
-  font-weight: 500;
+  font-weight: 600;
+  letter-spacing: -1px;
   line-height: 1.15;
-  color: #1c2f28;
+  color: var(--ink);
 }
 .resume-doc .resume-doc-role {
   margin: 6px 0 0;
@@ -3929,12 +3928,11 @@ footer {
 }
 .welcome h1 {
   margin: 0;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(32px, 4.2vw, 50px);
-  font-weight: 500;
-  line-height: 1.08;
-  letter-spacing: -0.5px;
-  color: #1c2f28;
+  font-size: clamp(30px, 3.9vw, 46px);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -1.6px;
+  color: var(--ink);
   text-wrap: balance;
 }
 .welcome-lead {
