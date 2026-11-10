@@ -80,6 +80,7 @@ export default function App() {
     evaluateMatch,
     copyLetter,
     signOut,
+    deleteAccount,
     visibleJobs,
     readiness,
     personalDefaults,
@@ -629,14 +630,16 @@ export default function App() {
       </div>
       {confirmation && (
         <ConfirmDialog
-          title={t("Clear resume and chat?")}
-          message={t("reset.consequences")}
-          confirmLabel={t("Clear")}
+          title={t(confirmation === "delete-account" ? "Delete your account?" : "Clear resume and chat?")}
+          message={t(confirmation === "delete-account" ? "account.deleteConsequences" : "reset.consequences")}
+          confirmLabel={t(confirmation === "delete-account" ? "Delete account" : "Clear")}
           cancelLabel={t("Cancel")}
           busy={busy}
           onConfirm={() => {
+            const what = confirmation;
             setConfirmation(null);
-            reset(true);
+            if (what === "delete-account") deleteAccount(true);
+            else reset(true);
           }}
           onCancel={closeConfirmation}
         />

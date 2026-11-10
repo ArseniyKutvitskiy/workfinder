@@ -33,6 +33,7 @@ export default function ResumePage(state: ReturnType<typeof useWorkspace>) {
     exportPdf,
     published,
     draft,
+    deleteAccount,
   } = state;
   const exportable = resumeExportable(profile);
   const [manual, setManual] = useState(false);
@@ -130,9 +131,14 @@ export default function ResumePage(state: ReturnType<typeof useWorkspace>) {
                 </label>
               </section>
             ))}
-            <button type="button" className="text-button danger" onClick={() => reset()}>
-              {t("Clear resume and chat")}
-            </button>
+            <div className="danger-zone">
+              <button type="button" className="text-button danger" onClick={() => reset()}>
+                {t("Clear resume and chat")}
+              </button>
+              <button type="button" className="text-button danger" onClick={() => deleteAccount()}>
+                {t("Delete account and all data")}
+              </button>
+            </div>
           </fieldset>
           <div className="resume-edit-bar">
             <span>{dirty ? t("Unsaved changes") : t("Saved")}</span>
@@ -251,6 +257,9 @@ export default function ResumePage(state: ReturnType<typeof useWorkspace>) {
               </button>
             )}
           </section>
+          <button type="button" className="text-button danger resume-delete" onClick={() => deleteAccount()}>
+            {t("Delete account and all data")}
+          </button>
           <p className="small muted resume-saved-note">
             <Check size={14} aria-hidden="true" />
             {t(dirty ? "Unsaved changes" : "Saved in your account")}

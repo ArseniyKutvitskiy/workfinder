@@ -102,6 +102,7 @@ const contracts = {
   match: matchResultSchema,
   "cover-letter": letterResultSchema,
   letter: z.object({ saved: z.boolean() }),
+  "account/delete": z.object({ deleted: z.literal(true) }),
 };
 export async function api<K extends keyof typeof contracts>(
   route: K,

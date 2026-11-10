@@ -4121,3 +4121,15 @@ footer {
     justify-items: stretch;
   }
 }
+
+/* Destructive account actions, kept visually quiet. */
+.danger-zone {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+}
+.resume-delete {
+  align-self: flex-start;
+  margin: 0 4px;
+  font-size: 12.5px;
+}

@@ -243,7 +243,16 @@ export function createApp(
    * which only the server can exchange (it needs the client secret). The ID
    * token goes back to the browser, and Supabase verifies it on sign-in.
    */
-  app.post("/api/auth/google", async (req, res) => {
+  app.post(
+    "/api/auth/google",
+    rateLimit({
+      windowMs: 60000,
+      limit: 15,
+      standardHeaders: "draft-8",
+      legacyHeaders: false,
+      handler: (_req, _res, next) => next(new HttpError(429, "rate.limit")),
+    }),
+    async (req, res) => {
     if (!config.GOOGLE_CLIENT_ID || !config.GOOGLE_CLIENT_SECRET)
       throw new HttpError(404, "auth.googleDisabled");
     const { code } = z.object({ code: z.string().min(10).max(2048) }).parse(req.body);
@@ -263,7 +272,8 @@ export function createApp(
     if (!response?.ok || typeof body?.id_token !== "string")
       throw new HttpError(401, "auth.googleFailed");
     res.json({ idToken: body.id_token });
-  });
+    },
+  );
   app.use("/api", database.authenticate);
   /**
    * Per-user AI budgets (cost protection). Chat turns are cheap and an
@@ -326,6 +336,26 @@ export function createApp(
         .upsert({ user_id: req.user.id, display_name: profile.name }),
     );
     res.json({ version: updated.version, messages });
+  });
+  /**
+   * Delete the account and everything stored for it (right to erasure):
+   * exported PDFs, resume and chat, saved jobs, letters, rate counters, then
+   * the sign-in record itself. Database rows also cascade from auth.users.
+   */
+  app.post("/api/account/delete", async (req, res) => {
+    z.object({ confirm: z.literal(true) }).strict().parse(req.body);
+    await database.limit(req.user.id, "account-delete", 3, 3600);
+    const userId = req.user.id;
+    const files = dbResult(await database.admin.storage.from("resumes").list(userId, { limit: 100 }));
+    if (files?.length)
+      dbResult(await database.admin.storage.from("resumes").remove(files.map((f) => `${userId}/${f.name}`)));
+    for (const table of ["cover_letters", "saved_jobs", "resumes", "profiles"] as const)
+      dbResult(await database.admin.from(table).delete().eq("user_id", userId));
+    await database.admin.from("rate_buckets").delete().like("key", `%:${userId}`);
+    const removed = await database.admin.auth.admin.deleteUser(userId);
+    if (removed.error) throw new HttpError(503, "service.unavailable");
+    console.log(JSON.stringify({ event: "account_deleted", requestId: req.id }));
+    res.json({ deleted: true });
   });
   app.post("/api/reset", async (req, res) => {
     const { version } = z

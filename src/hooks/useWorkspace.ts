@@ -539,6 +539,22 @@ export function useWorkspace() {
       setBusy(false);
     }
   }
+  /** Delete the account with all its data, then leave the workspace. */
+  async function deleteAccount(confirmed = false) {
+    if (confirmed !== true) {
+      setConfirmation("delete-account");
+      return;
+    }
+    setBusy(true);
+    try {
+      await api("account/delete", { confirm: true });
+      await client.auth.signOut({ scope: "local" }).catch(() => undefined);
+      window.location.assign("/");
+    } catch (e) {
+      setError(errorMessage(e));
+      setBusy(false);
+    }
+  }
   async function signOut() {
     try {
       const result = await client.auth.signOut();
@@ -655,6 +671,7 @@ export function useWorkspace() {
     copyLetter,
     exportPdf,
     signOut,
+    deleteAccount,
     visibleJobs,
   };
 }
