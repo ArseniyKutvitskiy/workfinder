@@ -4133,3 +4133,56 @@ footer {
   margin: 0 4px;
   font-size: 12.5px;
 }
+
+/* Consent screen, legal links, AI-generated notes. */
+.consent-card {
+  width: min(100%, 520px);
+}
+.consent-row {
+  display: grid !important;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 12px !important;
+  align-items: start;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 13.5px !important;
+  line-height: 1.5;
+  cursor: pointer;
+}
+.consent-row:has(input:checked) {
+  border-color: var(--brand);
+  background: #f3f8f3;
+}
+.consent-row input {
+  width: 18px !important;
+  height: 18px;
+  margin: 2px 0 0;
+  padding: 0 !important;
+  accent-color: var(--brand);
+}
+.consent-row a,
+.legal-links a {
+  color: var(--brand);
+  font-weight: 600;
+}
+.legal-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+}
+.legal-links a {
+  text-decoration: none;
+}
+.legal-links a:hover {
+  text-decoration: underline;
+}
+.ai-note {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.resume-side .ai-note {
+  margin: 0 4px;
+}

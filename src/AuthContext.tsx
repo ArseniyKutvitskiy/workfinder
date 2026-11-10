@@ -13,6 +13,7 @@ import { Brand } from "./Brand.tsx";
 import { setAuthClient } from "./api.ts";
 import { GoogleButton } from "./GoogleButton.tsx";
 import { Welcome } from "./Welcome.tsx";
+import { ConsentScreen, hasConsent } from "./Consent.tsx";
 import {
   consumeOAuthError,
   googleAvailable,
@@ -100,6 +101,8 @@ export function AuthProvider({ children }: React.PropsWithChildren) {
           recovery={recovery}
           onRecovered={() => setRecovery(false)}
         />
+      ) : !hasConsent(session) ? (
+        <ConsentScreen client={client} />
       ) : (
         <React.Fragment key={session.user.id}>{children}</React.Fragment>
       )}
@@ -316,6 +319,10 @@ function AuthForm({
           {t(
             "AI features send your resume and chat to OpenAI when you use them. Do not include sensitive identifiers.",
           )}
+        </p>
+        <p className="small muted legal-links">
+          <a href="/privacy.html">{t("Privacy policy")}</a>
+          <a href="/terms.html">{t("Terms of use")}</a>
         </p>
       </section>
     </div>

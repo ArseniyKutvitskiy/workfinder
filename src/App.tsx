@@ -624,7 +624,10 @@ export default function App() {
             <span>
               {t("A first step toward a future that feels like you.")}
             </span>
-            <span>{t("Made for students, with possibility.")}</span>
+            <span className="legal-links">
+              <a href="/privacy.html">{t("Privacy policy")}</a>
+              <a href="/terms.html">{t("Terms of use")}</a>
+            </span>
           </footer>
         </main>
       </div>

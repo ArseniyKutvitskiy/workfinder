@@ -356,6 +356,7 @@ export function JobDetails({
                 disabled={busy}
                 onChange={(e) => onLetter(e.target.value)}
               />
+              <p className="ai-note">{t("ai.generatedNote")}</p>
               <div className="flex flex-wrap gap-3 items-center">
                 <button
                   className="primary-button"

@@ -257,6 +257,7 @@ export default function ResumePage(state: ReturnType<typeof useWorkspace>) {
               </button>
             )}
           </section>
+          <p className="ai-note">{t("ai.generatedNote")}</p>
           <button type="button" className="text-button danger resume-delete" onClick={() => deleteAccount()}>
             {t("Delete account and all data")}
           </button>

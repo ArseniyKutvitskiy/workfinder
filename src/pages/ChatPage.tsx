@@ -264,6 +264,7 @@ function DraftCard({
     <article className={`draft-card ${latest ? "" : "draft-old"}`} aria-label={t("Resume draft")}>
       <span className="draft-badge">{t(latest ? "Draft" : "Previous draft")}</span>
       <ResumeDocument profile={draft} compact />
+      <p className="ai-note">{t("ai.generatedNote")}</p>
       {latest && (
         <footer>
           <button className="primary-button" onClick={onPublish} disabled={busy}>
