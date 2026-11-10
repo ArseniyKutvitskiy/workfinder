@@ -3906,3 +3906,220 @@ footer {
     flex-wrap: wrap;
   }
 }
+
+/* =====================================================================
+   First screen: what WorkFinder is (left) + sign-in (right)
+   ===================================================================== */
+.auth-page.with-welcome {
+  grid-template-columns: minmax(0, 560px) minmax(0, 440px);
+  justify-content: center;
+  align-items: center;
+  gap: clamp(32px, 6vw, 88px);
+  padding: 40px clamp(20px, 4vw, 56px);
+  background:
+    radial-gradient(900px 520px at 12% 8%, #e3efe6 0%, transparent 62%),
+    var(--canvas);
+}
+.auth-page.with-welcome .auth-card {
+  width: 100%;
+  box-shadow: 0 30px 70px -48px #17463588, 0 2px 8px -5px #17463533;
+}
+.welcome .eyebrow {
+  margin: 0 0 14px;
+}
+.welcome h1 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(32px, 4.2vw, 50px);
+  font-weight: 500;
+  line-height: 1.08;
+  letter-spacing: -0.5px;
+  color: #1c2f28;
+  text-wrap: balance;
+}
+.welcome-lead {
+  margin: 16px 0 0;
+  max-width: 46ch;
+  font-size: 16.5px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+.welcome-steps {
+  display: grid;
+  gap: 16px;
+  margin: 30px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.welcome-steps li {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.welcome-step-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: #fff;
+  border: 1px solid #d5e2d8;
+  color: var(--brand);
+}
+.welcome-steps strong {
+  display: block;
+  font-size: 15px;
+  color: var(--ink);
+}
+.welcome-steps p {
+  margin: 3px 0 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.welcome-preview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 168px;
+  grid-template-rows: auto auto;
+  gap: 10px 16px;
+  align-items: start;
+  margin-top: 30px;
+  padding: 18px;
+  border: 1px solid #d5e2d8;
+  border-radius: 16px;
+  background: #ffffffb3;
+}
+.welcome-bubble {
+  justify-self: start;
+  max-width: 100%;
+  padding: 9px 13px;
+  border-radius: 13px 13px 13px 4px;
+  background: #eef3ea;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink);
+}
+.welcome-bubble.mine {
+  justify-self: end;
+  border-radius: 13px 13px 4px 13px;
+  background: var(--brand);
+  color: #fff;
+}
+.welcome-sheet {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  display: grid;
+  gap: 7px;
+  padding: 14px;
+  border: 1px solid #dfe6e0;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 14px 30px -22px #17463588;
+}
+.welcome-sheet span {
+  display: block;
+  height: 6px;
+  border-radius: 3px;
+  background: #e3e9e4;
+}
+.welcome-sheet .welcome-sheet-name {
+  width: 70%;
+  height: 10px;
+  background: #1c2f28;
+}
+.welcome-sheet .welcome-sheet-role {
+  width: 45%;
+  background: var(--brand);
+  margin-bottom: 4px;
+}
+.welcome-sheet .short {
+  width: 60%;
+}
+.welcome-sheet-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+.welcome-sheet-chips i {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #e8f2eb;
+  color: #1f4d3d;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 600;
+}
+.welcome-sheet .welcome-sheet-done {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: auto;
+  margin-top: 4px;
+  background: none;
+  color: var(--brand);
+  font-size: 10.5px;
+  font-weight: 650;
+}
+.welcome-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 22px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.welcome-facts li {
+  padding: 5px 12px;
+  border: 1px solid #d5e2d8;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 12.5px;
+  font-weight: 550;
+  color: var(--ink);
+}
+@media (max-width: 960px) {
+  .auth-page.with-welcome {
+    grid-template-columns: minmax(0, 520px);
+    align-items: start;
+    gap: 28px;
+    padding: 28px 16px 40px;
+  }
+  .welcome-preview {
+    display: none;
+  }
+  .welcome-steps {
+    margin-top: 22px;
+    gap: 14px;
+  }
+  .welcome-lead {
+    font-size: 15.5px;
+  }
+}
+/* Phone: pitch first, then the form, then the details. */
+@media (max-width: 960px) {
+  .auth-page.with-welcome .welcome {
+    display: contents;
+  }
+  .auth-page.with-welcome .welcome > * {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+  .auth-page.with-welcome {
+    gap: 14px;
+  }
+  .auth-page.with-welcome .auth-card {
+    margin: 10px 0;
+    padding: 24px 20px;
+  }
+  .auth-page.with-welcome .welcome-steps,
+  .auth-page.with-welcome .welcome-facts {
+    order: 2;
+  }
+}
+@media (max-width: 960px) {
+  .auth-page.with-welcome {
+    justify-items: stretch;
+  }
+}

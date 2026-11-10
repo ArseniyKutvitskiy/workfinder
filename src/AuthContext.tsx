@@ -12,6 +12,7 @@ import { Splash, SplashError } from "./Splash.tsx";
 import { Brand } from "./Brand.tsx";
 import { setAuthClient } from "./api.ts";
 import { GoogleButton } from "./GoogleButton.tsx";
+import { Welcome } from "./Welcome.tsx";
 import {
   consumeOAuthError,
   googleAvailable,
@@ -195,7 +196,8 @@ function AuthForm({
     }
   }
   return (
-    <div className="auth-page">
+    <div className={`auth-page${recovery ? "" : " with-welcome"}`}>
+      {!recovery && <Welcome />}
       <section className="auth-card">
         <div className="flex items-center justify-between gap-3">
           <h1 className="auth-brand">
@@ -211,7 +213,7 @@ function AuthForm({
                 ? "Create account"
                 : mode === "reset"
                   ? "Reset password"
-                  : "Welcome back",
+                  : "Sign in to your workspace",
           )}
         </h2>
         <p>{t("Your career workspace, securely saved.")}</p>
