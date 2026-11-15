@@ -46,10 +46,12 @@ export function createLLM(config: Config) {
     signal?: AbortSignal,
     timeout: number = TIMEOUT.parse,
     maxTokens: number = base.max_output_tokens,
+    model: string = base.model,
   ) {
     const result = await client.responses.parse(
       {
         ...base,
+        model,
         max_output_tokens: maxTokens,
         instructions,
         input: JSON.stringify(input),
@@ -141,16 +143,32 @@ export function createLLM(config: Config) {
       language: string,
       signal?: AbortSignal,
     ): Promise<{ message: string; draft: Profile }> {
-      const { message, ...fields } = await structured(
-        composePrompt(language, !!previous),
-        { profile, previousDraft: previous ?? null, transcript: plain(messages).slice(-48) },
-        aiComposeSchema,
-        "resume_draft",
-        signal,
-        TIMEOUT.compose,
-        // A detailed resume in Russian is long: leave room for every section.
-        8000,
-      );
+      const run = (model: string, timeout: number) =>
+        structured(
+          composePrompt(language, !!previous),
+          { profile, previousDraft: previous ?? null, transcript: plain(messages).slice(-48) },
+          aiComposeSchema,
+          "resume_draft",
+          signal,
+          timeout,
+          // A detailed resume in Russian is long: leave room for every section.
+          8000,
+          model,
+        );
+      const strong = config.OPENAI_COMPOSE_MODEL;
+      const started = Date.now();
+      let result;
+      try {
+        result = await run(strong, TIMEOUT.compose);
+      } catch (error) {
+        // The stronger model may be unavailable for this key: try the main model
+        // with whatever time is left, unless the student cancelled.
+        const left = TIMEOUT.compose - (Date.now() - started);
+        if (strong === base.model || signal?.aborted || left < 20_000) throw error;
+        console.warn("compose: falling back to", base.model);
+        result = await run(base.model, left);
+      }
+      const { message, ...fields } = result;
       return { message: message.trim().slice(0, 2000), draft: clampProfile(fields) };
     },
     match: async (profile: Profile, job: Job, language: string) =>

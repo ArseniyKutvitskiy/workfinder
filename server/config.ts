@@ -34,6 +34,8 @@ const schema = z.object({
   // Optional: without a key the app runs AI features in transparent offline mode.
   OPENAI_API_KEY: optional(z.string().min(20)),
   OPENAI_MODEL: z.string().min(1).default("gpt-4o-mini"),
+  /** Writing the full resume is one request per resume: a stronger model pays off here. */
+  OPENAI_COMPOSE_MODEL: z.string().min(1).default("gpt-4.1"),
   HH_USER_AGENT: z.string().min(10).default("WorkFinder/2.0"),
   HH_ACCESS_TOKEN: optional(z.string()),
   JOOBLE_API_KEY: optional(z.string()),

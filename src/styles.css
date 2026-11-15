@@ -3755,6 +3755,18 @@ footer {
 .resume-side .download-panel {
   margin: 0;
 }
+/* The side column is narrow: one full-width button per row, text on one line. */
+.resume-side .download-actions {
+  grid-template-columns: minmax(0, 1fr);
+}
+.resume-side .download-head {
+  display: grid;
+  gap: 10px;
+}
+.resume-side .segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
 .resume-strength {
   padding: 18px 20px;
   border: 1px solid var(--line);

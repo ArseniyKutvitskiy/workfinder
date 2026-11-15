@@ -53,6 +53,7 @@ See [.env.example](.env.example). Development reads `.env.local`; production rea
 | APP_ORIGIN | production | Exact public origin; must be `https://` in production |
 | OPENAI_API_KEY | no | Enables live AI; empty means offline AI mode |
 | OPENAI_MODEL | no | Default `gpt-4o-mini` (cheap; set `gpt-4o` for stronger answers) |
+| OPENAI_COMPOSE_MODEL | no | Default `gpt-4.1`: writes the full resume (one request per resume); falls back to OPENAI_MODEL if unavailable |
 | HH_USER_AGENT | no | HeadHunter app identity with a contact email (default `WorkFinder/2.0`) |
 | HH_ACCESS_TOKEN | no | Enables HeadHunter search (KZ/RU) |
 | JOOBLE_API_KEY | no | Enables Jooble search |
