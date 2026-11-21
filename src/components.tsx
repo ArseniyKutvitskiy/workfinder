@@ -5,7 +5,6 @@ import {
   ArrowUpRight,
   Bookmark,
   MapPin,
-  Clock3,
   Sparkles,
   Check,
   X,
@@ -17,6 +16,7 @@ export const Spinner = ({ size = 16 }: { size?: number }) => (
 import { useLanguage } from "./LanguageContext.tsx";
 import LanguageSwitcher from "./LanguageSwitcher.tsx";
 import { RESUME_SECTIONS, resumeSubtitle } from "./resume.ts";
+import { formatSalary, postedAgo } from "./jobFormat.ts";
 
 /** Provider placeholders that should not be shown as if they were data. */
 const PLACEHOLDERS = new Set(["", "not specified", "не указано", "salary not listed"]);
@@ -30,12 +30,19 @@ export function shortLocation(location: string) {
     .filter(Boolean);
   return { first: parts[0] ?? "", more: Math.max(0, parts.length - 1), full: parts.join(", ") };
 }
+/** "Бар Естествознание" → "БЕ", "SKY GROUP" → "SG", "Kaspi" → "K". */
+export function companyInitials(company: string) {
+  const words = company.replace(/[«»"'()]/g, " ").split(/\s+/).filter((w) => /[\p{L}\d]/u.test(w));
+  const skip = /^(тоо|ооо|ао|зао|оао|ип|llc|ltd|inc|gmbh)$/i;
+  const main = words.filter((w) => !skip.test(w));
+  const list = main.length ? main : words;
+  return (list.length > 1 ? list[0][0] + list[1][0] : (list[0] ?? "?")[0]).toUpperCase();
+}
 export function JobCard({
   job,
   saved,
   onSave,
   onSelect,
-  hasSkills,
 }: {
   job: Job;
   saved: boolean;
@@ -43,76 +50,71 @@ export function JobCard({
   onSelect: (job: Job) => void;
   hasSkills: boolean;
 }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const salary = formatSalary(job.salary, language);
+  const posted = postedAgo(job.publishedAt, language);
+  const place = known(job.location) ? shortLocation(job.location) : null;
+  const facts = [
+    job.remote ? t("Remote") : "",
+    known(job.type) ? t(job.type) : "",
+    known(job.level) ? t(job.level) : "",
+  ].filter((v, i, all) => v && all.indexOf(v) === i);
   return (
     <article className="job-card">
-      <div className="flex items-start justify-between gap-3">
-        <div
-          className="company-logo"
-          style={{
-            background: job.color,
-          }}
-        >
-          {job.initials}
-        </div>
+      <header className="job-card-head">
+        <span className="company-logo" style={{ "--logo": job.color } as React.CSSProperties} aria-hidden="true">
+          {companyInitials(job.company)}
+        </span>
+        <span className="job-card-company">
+          <span className="company-name" title={job.company}>
+            {job.company}
+          </span>
+          {posted && <span className="job-posted">{posted}</span>}
+        </span>
         <button
-          className={`icon-button ${saved ? "saved" : ""}`}
+          className={`icon-button job-save ${saved ? "saved" : ""}`}
           onClick={() => onSave(job.id)}
-          aria-label={t(saved ? "Unsave {title}" : "Save {title}", {
-            title: t(job.title),
-          })}
+          aria-label={t(saved ? "Unsave {title}" : "Save {title}", { title: t(job.title) })}
           aria-pressed={saved}
         >
-          <Bookmark size={19} fill={saved ? "currentColor" : "none"} />
+          <Bookmark size={18} fill={saved ? "currentColor" : "none"} />
         </button>
-      </div>
-      <p className="company-name">
-        {job.company} ·{" "}
-        <a href={job.url} target="_blank" rel="noopener noreferrer">
-          {job.source}
-        </a>
-      </p>
+      </header>
       <button className="job-title" onClick={() => onSelect(job)}>
         {t(job.title)}
       </button>
-      {(known(job.location) || known(job.type)) && (
-        <div className="job-meta">
-          {known(job.location) && (
-            <span title={shortLocation(job.location).full}>
+      <p className={`job-salary${salary ? "" : " none"}`}>{salary || t("Salary not listed")}</p>
+      {(place || facts.length > 0) && (
+        <ul className="job-facts">
+          {place && (
+            <li title={place.full}>
               <MapPin size={14} aria-hidden="true" />
-              {t(shortLocation(job.location).first)}
-              {shortLocation(job.location).more > 0 &&
-                ` +${shortLocation(job.location).more}`}
-            </span>
+              {t(place.first)}
+              {place.more > 0 && ` +${place.more}`}
+            </li>
           )}
-          {known(job.type) && (
-            <span>
-              <Clock3 size={14} aria-hidden="true" />
-              {t(job.type)}
-            </span>
-          )}
-        </div>
+          {facts.map((fact) => (
+            <li key={fact}>{fact}</li>
+          ))}
+        </ul>
       )}
-      {(known(job.level) || job.skills.length > 0) && (
+      {job.skills.length > 0 && (
         <div className="tags">
-          {known(job.level) && <span>{t(job.level)}</span>}
           {job.skills.slice(0, 3).map((s) => (
             <span key={s}>{t(s)}</span>
           ))}
         </div>
       )}
-      <div className="job-bottom">
-        <span className="salary">{t(job.salary)}</span>
-        <button className="match-pill" onClick={() => onSelect(job)}>
-          <Sparkles size={13} />
-          {job.score != null
-            ? t("{score}% match", {
-                score: job.score,
-              })
-            : t("View fit")}
-          <ArrowUpRight size={13} />
+      <footer className="job-card-foot">
+        <button className={`match-pill${job.score != null ? " scored" : ""}`} onClick={() => onSelect(job)}>
+          <Sparkles size={13} aria-hidden="true" />
+          {job.score != null ? t("{score}% match", { score: job.score }) : t("View fit")}
         </button>
-      </div>
+        <button className="job-more" onClick={() => onSelect(job)} aria-label={t("Details: {title}", { title: t(job.title) })}>
+          {t("Details")}
+          <ArrowUpRight size={14} aria-hidden="true" />
+        </button>
+      </footer>
     </article>
   );
 }
@@ -202,13 +204,11 @@ export function JobDetails({
         onClick={(e) => e.stopPropagation()}
       >
         <header className="dialog-head">
-          <div className="company-logo" style={{ background: job.color }}>
-            {job.initials}
-          </div>
+          <span className="company-logo" style={{ "--logo": job.color } as React.CSSProperties} aria-hidden="true">
+            {companyInitials(job.company)}
+          </span>
           <div className="dialog-title">
-            <p className="eyebrow">
-              {job.company} · {t(job.source)}
-            </p>
+            <p className="eyebrow">{job.company}</p>
             <h2 id="job-dialog-title">{t(job.title)}</h2>
           </div>
           <button

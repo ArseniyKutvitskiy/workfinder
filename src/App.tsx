@@ -32,7 +32,6 @@ import {
   resolveLocation,
   resumeCities,
 } from "../shared/geo.ts";
-import { JOB_SOURCES, SOURCE_LABELS } from "../shared/schemas.ts";
 export default function App() {
   const state = useWorkspace();
   const {
@@ -49,7 +48,6 @@ export default function App() {
     isMobile,
     filters,
     setFilters,
-    sources,
     loading,
     busy,
     error,
@@ -447,22 +445,6 @@ export default function App() {
                         <option value="probation">{t("Internship")}</option>
                       </select>
                     </label>
-                    <label className="field">
-                      <span>{t("Job source")}</span>
-                      <select
-                        value={filters.source}
-                        onChange={(e) =>
-                          setFilters({ ...filters, source: e.target.value })
-                        }
-                      >
-                        <option value="all">{t("All sources")}</option>
-                        {JOB_SOURCES.map((id) => (
-                          <option key={id} value={id}>
-                            {SOURCE_LABELS[id]}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
                     <div className="field">
                       <span id="salary-label">{t("Minimum salary")}</span>
                       <div className="field-group">
@@ -529,35 +511,11 @@ export default function App() {
               </div>
             </>
           )}
-          {view === "jobs" &&
-            !jobsLocked &&
-            sources.some((x) => x.status !== "notConfigured") && (
-              <div className="source-row" role="status">
-                <span className="source-label">{t("Sources")}:</span>
-                {sources
-                  .filter(
-                    (item) =>
-                      item.status !== "notConfigured" &&
-                      !(item.status === "ok" && !item.count),
-                  )
-                  .map((item) => (
-                    <span
-                      key={item.source}
-                      className={"source-chip source-" + item.status}
-                      title={t("source." + item.status)}
-                    >
-                      <span className="source-dot" aria-hidden="true" />
-                      {SOURCE_LABELS[item.source]}
-                      {item.count ? <b className="source-count">{item.count}</b> : null}
-                      {item.status !== "ok" && (
-                        <em>{t("source.short." + item.status)}</em>
-                      )}
-                    </span>
-                  ))}
-                <span className="source-note">{t("jobs.sampled")}</span>
-                {jobNotice && <span className="source-note">{t(jobNotice)}</span>}
-              </div>
-            )}
+          {view === "jobs" && !jobsLocked && jobNotice && (
+            <p className="source-note jobs-notice" role="status">
+              {t(jobNotice)}
+            </p>
+          )}
           {jobsLocked && (
             <section className="jobs-locked">
               <span className="jobs-locked-icon" aria-hidden="true">
