@@ -4317,3 +4317,7 @@ footer {
     overflow-y: auto;
   }
 }
+
+.city-picker {
+  margin-top: 10px;
+}

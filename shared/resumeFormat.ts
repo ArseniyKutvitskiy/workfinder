@@ -1,5 +1,6 @@
 import type { Profile } from "./schemas.ts";
 import { sectionText } from "./schemas.ts";
+import { placeLabel } from "./geo.ts";
 
 /** Resume body sections in reading order (header fields are rendered separately). */
 export const RESUME_SECTIONS: [string, keyof Profile][] = [
@@ -23,10 +24,7 @@ export const filledSections = (profile: Profile) =>
 
 /** "Frontend developer · Almaty, Kazakhstan · anna@mail.kz" */
 export function resumeSubtitle(profile: Profile) {
-  const place = [profile.city, profile.country]
-    .map((v) => sectionText(v))
-    .filter(Boolean)
-    .join(", ");
+  const place = placeLabel(profile.city, profile.country);
   return [sectionText(profile.occupation), place, sectionText(profile.contact)]
     .filter(Boolean)
     .join(" · ");

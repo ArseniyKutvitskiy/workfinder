@@ -1,4 +1,5 @@
 import type { Profile } from "../../shared/schemas.ts";
+import { placeLabel } from "../../shared/geo.ts";
 import { sectionText } from "../../shared/schemas.ts";
 import PDFDocument from "pdfkit";
 import { translate } from "../../shared/i18n.ts";
@@ -34,7 +35,7 @@ export function renderResume(profile: Profile, language: string, template = "mod
     doc.fillColor(accent).fontSize(24).text(sectionText(profile.name) || translate(language, "Your name"), left, doc.y, { width });
     const role = sectionText(profile.occupation);
     if (role) doc.moveDown(0.15).fillColor(ink).fontSize(12.5).text(role, { width });
-    const meta = [[profile.city, profile.country].map(sectionText).filter(Boolean).join(", "), sectionText(profile.contact)]
+    const meta = [placeLabel(profile.city, profile.country), sectionText(profile.contact)]
       .filter(Boolean)
       .join("   ·   ");
     if (meta) doc.moveDown(0.3).fillColor(muted).fontSize(9.5).text(meta, { width });

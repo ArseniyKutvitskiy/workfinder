@@ -1,5 +1,5 @@
 import type { Profile } from "../shared/schemas.ts";
-import { resolveLocation, currencyFor } from "../shared/geo.ts";
+import { resolveLocation, resumeCities, currencyFor } from "../shared/geo.ts";
 import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard,
@@ -30,7 +30,9 @@ export type Filters = typeof defaultFilters;
 
 /** Search defaults derived from the resume: role as keyword, home city/country, local currency. */
 export function personalFilters(profile: Profile): Filters {
-  const place = resolveLocation(profile.city, profile.country);
+  // Several cities in the resume: the first one is where jobs are searched by default.
+  const first = resumeCities(profile.city, profile.country)[0];
+  const place = resolveLocation(first?.city ?? profile.city, profile.country);
   return {
     ...defaultFilters,
     keyword: profile.occupation.trim().slice(0, 80),

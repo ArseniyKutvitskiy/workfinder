@@ -229,3 +229,42 @@ export function resolveLocation(cityText: string, countryText = "") {
 
 export const countryName = (code: string, language: string) =>
   COUNTRY_NAMES[code]?.[language === "en" ? "en" : "ru"] ?? code;
+
+/**
+ * Cities from the resume, in the student's order (at most 3): the student may
+ * name several ("Алматы, Москва", "Алматы или Москва"). A country written
+ * next to a city ("Алматы, Казахстан") is not a separate city.
+ */
+export function resumeCities(cityText: string, countryText = "") {
+  const fallbackCountry = countryCode(countryText.split(/\s*,\s*/)[0] ?? "");
+  const out: { city: string; country: string }[] = [];
+  for (const raw of cityText.split(/\s*[,;/]\s*|\s+(?:или|либо|or|and|и)\s+/i)) {
+    const part = raw.trim();
+    if (!part || part === "-") continue;
+    const known = findCity(part);
+    if (!known && countryCode(part)) continue;
+    const city = known ? (/[а-яё]/i.test(part) ? known.ru : known.en) : part;
+    if (out.some((c) => norm(c.city) === norm(city))) continue;
+    out.push({ city, country: known?.country || fallbackCountry });
+    if (out.length === 3) break;
+  }
+  return out;
+}
+
+/**
+ * The place line of a resume. One city: "Алматы, Казахстан" (as before).
+ * Several: "Алматы (Казахстан), Москва (Россия)", or "Алматы, Астана (Казахстан)"
+ * when they are in one country.
+ */
+export function placeLabel(cityText: string, countryText: string) {
+  const city = cityText.trim() === "-" ? "" : cityText.trim();
+  const country = countryText.trim() === "-" ? "" : countryText.trim();
+  const cities = resumeCities(city, country);
+  if (cities.length < 2) return [city, country].filter(Boolean).join(", ");
+  const language = /[а-яё]/i.test(city) ? "ru" : "en";
+  const name = (code: string) => (code ? countryName(code, language) : "");
+  const codes = [...new Set(cities.map((c) => c.country))];
+  if (codes.length === 1)
+    return cities.map((c) => c.city).join(", ") + (codes[0] ? ` (${name(codes[0])})` : "");
+  return cities.map((c) => (c.country ? `${c.city} (${name(c.country)})` : c.city)).join(", ");
+}

@@ -3,10 +3,11 @@ import type { Profile } from "../shared/schemas.ts";
 import { sectionText } from "../shared/schemas.ts";
 import { filledSections, sectionBlocks, splitList } from "../shared/resumeFormat.ts";
 import { useLanguage } from "./LanguageContext.tsx";
+import { placeLabel } from "../shared/geo.ts";
 
 export function ResumeDocument({ profile, compact = false }: { profile: Profile; compact?: boolean }) {
   const { t } = useLanguage();
-  const place = [profile.city, profile.country].map(sectionText).filter(Boolean).join(", ");
+  const place = placeLabel(profile.city, profile.country);
   const contact = sectionText(profile.contact);
   const occupation = sectionText(profile.occupation);
   return (

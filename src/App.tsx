@@ -29,6 +29,8 @@ import {
   CURRENCY_BY_COUNTRY,
   countryName,
   currencyFor,
+  resolveLocation,
+  resumeCities,
 } from "../shared/geo.ts";
 import { JOB_SOURCES, SOURCE_LABELS } from "../shared/schemas.ts";
 export default function App() {
@@ -97,9 +99,16 @@ export default function App() {
   const closeConfirmation = useCallback(() => setConfirmation(null), [setConfirmation]);
   // Jobs are shown only for a published resume (saved jobs are always available).
   const jobsLocked = !published && (view === "jobs" || view === "overview");
-  // Picking another role from the resume is still "my matches"; other filters are changes.
+  // Cities named in the resume (the student may want to work in several).
+  const homeCities = resumeCities(profile.city, profile.country)
+    .map((c) => resolveLocation(c.city, c.country || profile.country))
+    .filter((c) => c.country);
+  const atHomeCity = homeCities.some((c) => c.city === filters.city && c.country === filters.country);
+  // Picking another role or city from the resume is still "my matches"; other filters are changes.
+  const place = (f: typeof filters) =>
+    atHomeCity ? { ...f, keyword: "", city: "", country: "", currency: "" } : { ...f, keyword: "" };
   const filtersChanged =
-    JSON.stringify({ ...filters, keyword: "" }) !== JSON.stringify({ ...personalDefaults, keyword: "" }) ||
+    JSON.stringify(place(filters)) !== JSON.stringify(place(personalDefaults)) ||
     !(roles?.length ? roles.includes(filters.keyword) : filters.keyword === personalDefaults.keyword);
   if (loadError) return <SplashError message={loadError} onSignOut={signOut} />;
   if (!ready) return <Splash stage="data" />;
@@ -282,7 +291,7 @@ export default function App() {
                   {t("Matched to your resume: {role} · {place}", {
                     role: filters.keyword || t("any role"),
                     place:
-                      [personalDefaults.city, countryName(personalDefaults.country, language)]
+                      [filters.city, countryName(filters.country, language)]
                         .filter(Boolean)
                         .join(", ") || t("anywhere"),
                   })}
@@ -318,6 +327,30 @@ export default function App() {
                       {t("Change via the assistant")}
                     </button>
                   </div>
+                  {homeCities.length > 1 && (
+                    <div className="role-picker city-picker">
+                      <span className="role-picker-label">{t("Cities from your resume")}</span>
+                      <div className="role-chips" role="radiogroup" aria-label={t("Cities from your resume")}>
+                        {homeCities.map((c) => {
+                          const active = filters.city === c.city && filters.country === c.country;
+                          return (
+                            <button
+                              key={c.country + c.city}
+                              type="button"
+                              role="radio"
+                              aria-checked={active}
+                              className={active ? "active" : ""}
+                              onClick={() =>
+                                setFilters({ ...filters, city: c.city, country: c.country, currency: currencyFor(c.country) })
+                              }
+                            >
+                              {c.city}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                   <div className="filter-grid">
                     <label className="field">
                       <span>{t("Country")}</span>
