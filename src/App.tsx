@@ -184,7 +184,7 @@ export default function App() {
         />
       )}
       <div
-        className="main-shell"
+        className={`main-shell${view === "chat" ? " chat-view" : ""}`}
         inert={!!selectedId || !!confirmation || (isMobile && mobileNav)}
       >
         <header className="topbar">

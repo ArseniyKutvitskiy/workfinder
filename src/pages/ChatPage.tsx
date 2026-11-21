@@ -44,6 +44,12 @@ export default function ChatPage(state: ReturnType<typeof useWorkspace>) {
     el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
     el.style.overflowY = el.scrollHeight > 160 ? "auto" : "hidden";
   }, [input]);
+  // Keep the cursor in the input like a messenger: on opening the chat and after
+  // every reply. Skipped on touch screens, where focus would pop up the keyboard.
+  useEffect(() => {
+    if (busy || !window.matchMedia("(pointer: fine)").matches) return;
+    inputRef.current?.focus({ preventScroll: true });
+  }, [busy]);
   return (
     <>
       <div className="page-heading">
@@ -168,7 +174,7 @@ export default function ChatPage(state: ReturnType<typeof useWorkspace>) {
                     send(e);
                   }
                 }}
-                disabled={busy}
+                aria-busy={busy}
               />
               <button
                 className="send-button"

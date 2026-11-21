@@ -4270,3 +4270,50 @@ footer {
     margin-left: 0;
   }
 }
+
+/* ---- Chat page fills the window like a messenger: no page scroll, the
+   conversation scrolls inside, the input is always visible at the bottom. ---- */
+@media (min-width: 641px) {
+  .main-shell.chat-view {
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .main-shell.chat-view > main {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding-top: 22px;
+    padding-bottom: 20px;
+  }
+  .main-shell.chat-view > main > footer,
+  .main-shell.chat-view > main > .pagination {
+    display: none;
+  }
+  .main-shell.chat-view .page-heading {
+    flex-shrink: 0;
+    margin-bottom: 16px;
+  }
+  .main-shell.chat-view .page-heading p:not(.eyebrow) {
+    display: none;
+  }
+  .main-shell.chat-view .page-heading h1 {
+    font-size: 26px;
+  }
+  .main-shell.chat-view .builder-layout {
+    flex: 1 1 auto;
+    min-height: 0;
+    align-items: stretch;
+  }
+  .main-shell.chat-view .chat-panel {
+    height: auto;
+    min-height: 0;
+  }
+  .main-shell.chat-view .builder-aside {
+    align-self: stretch;
+    min-height: 0;
+    overflow-y: auto;
+  }
+}
