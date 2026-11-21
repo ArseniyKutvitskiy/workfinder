@@ -33,7 +33,12 @@ import {
   chatPhase,
   trimHistory,
   OPTIONAL_STEPS,
+  INTERVIEW_STEPS,
   isSkipped,
+  SKIPPED,
+  saysNo,
+  asksForResume,
+  contactIssue,
   publishedProfile,
   rolesRequestSchema,
   clampRoles,
@@ -403,6 +408,29 @@ export function createApp(
         // Offline: the guided interview records the answer itself.
         if ((!ai || fallback) && action === "answer") parsed = offline.profile;
       }
+      // "Нет" to an optional question (courses, projects…) answers it: the model
+      // sometimes leaves the field empty, which would stall the interview forever.
+      const asked = interviewStep(profile);
+      if (!requested && asked && OPTIONAL_STEPS.includes(asked) && !parsed[asked]?.trim() && saysNo(message))
+        parsed = { ...parsed, [asked]: SKIPPED };
+      // A phone number with the wrong digit count (or a broken email) is not saved:
+      // the assistant asks to check it.
+      let note = "";
+      if (parsed.contact !== profile.contact && contactIssue(parsed.contact)) {
+        const [kind, count, code] = contactIssue(parsed.contact).split(":");
+        note =
+          kind === "email"
+            ? "The email the student just gave looks invalid. Do not accept it: ask them politely to check and write it again."
+            : `The phone number the student just gave has ${count} digits${code ? ` for country code +${code}` : ""}, which is not a valid number${code === "7" ? " (+7 numbers have 11 digits, e.g. +7 777 123 45 67)" : ""}. Do not accept it: say so briefly and ask them to check and write it again (or skip the contact).`;
+        parsed = { ...parsed, contact: profile.contact };
+      }
+      // When only optional steps are left and the student asks for the resume,
+      // the remaining ones count as skipped.
+      if (!previousDraft && !requested && asksForResume(message)) {
+        const left = INTERVIEW_STEPS.filter((f) => !parsed[f]?.trim());
+        if (left.length && left.every((f) => OPTIONAL_STEPS.includes(f)))
+          parsed = { ...parsed, ...Object.fromEntries(left.map((f) => [f, SKIPPED])) };
+      }
       // Before the first draft the interview runs to 100%: no early resume, whatever
       // the latest message looked like ("нет" is an answer, not "publish").
       // The last answer composes the resume without waiting to be asked.
@@ -468,7 +496,7 @@ export function createApp(
         "chat",
         signal,
         emit,
-        (live) => live.chat({ profile: parsed, messages, language, signal, justReady, phase }),
+        (live) => live.chat({ profile: parsed, messages, language, signal, justReady, phase, note }),
         () => (phase === "interview" ? offline.reply : translate(language, `chat.offline.${phase}`)),
       );
       if (result.fallback) {

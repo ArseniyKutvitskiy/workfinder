@@ -74,6 +74,7 @@ export function createLLM(config: Config) {
       signal,
       justReady = false,
       phase = "interview",
+      note = "",
     }: {
       profile: Profile;
       messages: Message[];
@@ -81,6 +82,8 @@ export function createLLM(config: Config) {
       signal?: AbortSignal;
       /** The latest answer completed what job matching needs. */
       justReady?: boolean;
+      /** Something the server checked that the reply must address (e.g. an invalid phone). */
+      note?: string;
       /** interview → collect facts; review → a draft awaits saving; saved → help after saving. */
       phase?: ChatPhase;
     }) {
@@ -92,6 +95,7 @@ export function createLLM(config: Config) {
             step: interviewStep(profile),
             justReady,
             phase,
+            note,
           }),
           // Chat replies are short by design (60–90 words).
           max_output_tokens: 400,

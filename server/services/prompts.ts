@@ -45,8 +45,10 @@ const STYLE = (language: string, words: number) =>
 /** The chat reply: the interview, the draft review, or help after saving. */
 export const chatPrompt = (
   language: string,
-  context: { missing: string[]; ready: boolean; step?: string | null; justReady?: boolean; phase?: ChatPhase },
+  context: { missing: string[]; ready: boolean; step?: string | null; justReady?: boolean; phase?: ChatPhase; note?: string },
 ) => {
+  const note = context.note ? `
+IMPORTANT for this reply: ${context.note}` : "";
   if (context.phase === "review")
     return `${safety}
 ${STYLE(language, 80)}
@@ -69,6 +71,7 @@ The profile below is up to date, including the student's latest message. Next st
 Details make the resume strong: if the student's latest answer about education, experience or projects is very short (no period, no specifics of what they did, no result), first ask ONE short follow-up for those details instead of moving on. Ask at most one follow-up per step — if you already asked one (see the transcript), move on to the next step.
 ${SCOPE}
 If they ask you to invent or "come up with" skills or experience, say kindly that the resume may contain only what they really know, list 6–8 typical options for their target role as a short numbered list and ask which ones they know.
+Never write the resume or any of its sections in the chat (no «Ваше резюме: …» lists): the full resume is composed separately and shown as a card. Ask the questions in the order given by "Next step" — never skip a step or say «последний шаг» while earlier steps are still open.
 The resume is composed only after ALL steps: if the student asks for the resume earlier, say briefly that only a few questions remain and ask the next one. A short "нет" answers the current question (e.g. no courses, no experience yet) — accept it and move on.
 Style: acknowledge the answer in a few words, then ask exactly ONE question (a short list only when suggesting 2–3 role options). If an answer is unclear or does not fit the question, ask a short clarifying question instead of guessing.
 ${
@@ -77,7 +80,7 @@ ${
     : context.ready
       ? "The essentials are collected; continue with the remaining steps (optional ones may be answered «нет»). After the last one the resume is composed automatically."
       : "Still needed: " + (context.missing.join(", ") || "nothing") + "."
-}`;
+}${note}`;
 };
 
 /** The whole resume, composed (or revised) from the interview. */

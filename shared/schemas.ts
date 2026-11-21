@@ -381,3 +381,41 @@ export const authFormSchema = z.object({
   email: z.email().max(254),
   password: z.string().min(8).max(128),
 });
+
+/** A short "no" to the current question («нет», «не было», «пропустить», "none"). */
+export const saysNo = (message: string) =>
+  /^\s*(нет|неа|нету|не было|не участвовал[аи]?|не проходил[аи]?|не знаю|пока нет|ничего|никаких( нет)?|пропусти(ть)?|пропуск|дальше|-|no|none|nope|skip|not yet|nothing)[\s.!,)]*$/i.test(message);
+
+/** The student asks where the resume is («так и где?», «составь резюме»). */
+export const asksForResume = (message: string) =>
+  /(где|покаж|состав|собер|сдела|созда|давай|когда|готов)[^.?!]{0,20}резюме|резюме[^.?!]{0,10}(где|готов)|^\s*(ну\s+)?(так\s+)?(а\s+|и\s+)?где[\s?!.]*$|^\s*(ну\s+)?(давай|готово|и\s+что)[\s?!.]*$|(where|show|make|build|create)[^.?!]{0,20}resume/i.test(message);
+
+const PHONE_DIGITS: Record<string, number> = { "7": 11, "998": 12, "996": 12, "375": 12, "994": 12, "995": 12, "374": 11, "992": 12 };
+
+/**
+ * Why a phone number or email in the contact field looks wrong, or "" when it
+ * looks fine. Checks the digit count for CIS country codes (+7 → 11 digits).
+ */
+export function contactIssue(contact: string): string {
+  const value = contact.trim();
+  if (!value || value === SKIPPED) return "";
+  for (const email of value.match(/\S+@\S+/g) ?? [])
+    if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(email.replace(/[.,;]+$/, ""))) return "email";
+  for (const raw of value.match(/\+?\d[\d\s()-]{5,}\d/g) ?? []) {
+    const digits = raw.replace(/\D/g, "");
+    if (raw.trim().startsWith("+")) {
+      const code = Object.keys(PHONE_DIGITS)
+        .sort((a, b) => b.length - a.length)
+        .find((c) => digits.startsWith(c));
+      if (code ? digits.length !== PHONE_DIGITS[code] : digits.length < 8 || digits.length > 15)
+        return `phone:${digits.length}:${code ?? ""}`;
+    } else {
+      // Local formats: 8 777 123 45 67, 7771234567, or other national numbers.
+      const ok = /^[78]/.test(digits)
+        ? digits.length === 11 || (digits.length === 10 && digits.startsWith("7"))
+        : digits.length >= 9 && digits.length <= 12;
+      if (!ok) return `phone:${digits.length}:`;
+    }
+  }
+  return "";
+}
