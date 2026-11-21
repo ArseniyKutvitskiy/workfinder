@@ -34,6 +34,9 @@ import {
   trimHistory,
   OPTIONAL_STEPS,
   isSkipped,
+  publishedProfile,
+  rolesRequestSchema,
+  clampRoles,
   type ChatAction,
 } from "../shared/schemas.ts";
 import {
@@ -433,7 +436,7 @@ export function createApp(
       if (action === "publish" && previousDraft) {
         const text = translate(language, "resume.publishedMessage");
         emit("delta", { text });
-        await finish({ ...previousDraft }, { role: "assistant", text, published: true });
+        await finish(publishedProfile(previousDraft, parsed), { role: "assistant", text, published: true });
         return;
       }
 
@@ -538,6 +541,45 @@ export function createApp(
     }
     dbResult(result);
     res.json({ saved });
+  });
+  /**
+   * Job titles for the search, chosen from the saved resume only: the jobs page
+   * offers these instead of a free keyword, so the search never contradicts it.
+   */
+  app.post("/api/roles", async (req, res) => {
+    const { language } = rolesRequestSchema.parse(req.body);
+    await database.limit(req.user.id, "roles", 30, 3600);
+    const resume = await getResume(req);
+    const own = clampRoles([resume.profile.occupation]);
+    if (!isPublished(resume.messages) || !own.length) {
+      res.json({ roles: own, fallback: true });
+      return;
+    }
+    const ai = liveAI();
+    if (ai) {
+      const key = aiCache.key(req.user.id, config.OPENAI_MODEL, "roles", { profile: resume.profile, language });
+      try {
+        const roles = await aiCache.getOrCreate(key, async () => {
+          const titles = await ai.roles(resume.profile, language);
+          // Keep only titles that really find vacancies on HH in the student's area,
+          // most popular first after the target role (HH matches every word of a title).
+          const counts = await jobs.countOnHH(titles, resume.profile.city, resume.profile.country).catch(() => null);
+          if (!counts) return titles;
+          const found = titles.map((title, i) => ({ title, n: counts[i] })).filter((r) => r.n !== 0);
+          if (!found.length) return titles;
+          const [first, ...rest] = found;
+          return [first, ...rest.sort((a, b) => (b.n ?? 0) - (a.n ?? 0))].map((r) => r.title);
+        });
+        breaker.success();
+        if (roles.length) {
+          res.json({ roles, fallback: false });
+          return;
+        }
+      } catch (error) {
+        noteFallback(req, error, "roles");
+      }
+    }
+    res.json({ roles: own, fallback: true });
   });
   app.post("/api/match", async (req, res) => {
     const { jobId, language } = jobRequestSchema.parse(req.body);

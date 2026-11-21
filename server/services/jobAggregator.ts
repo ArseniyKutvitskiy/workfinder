@@ -9,6 +9,7 @@ import {
   type JobSource,
   type JobsResponse,
   type Profile,
+  searchSchema,
   type SearchFilters,
 } from "../../shared/schemas.ts";
 import { resolveLocation } from "../../shared/geo.ts";
@@ -273,6 +274,23 @@ export function createJobService(
         matchedLocation: { city: query.city, country: filters.country },
         notice,
       };
+    },
+    /**
+     * How many HeadHunter vacancies each title finds in the student's area,
+     * or null when HH is not available there (no token, country outside the CIS).
+     */
+    async countOnHH(titles: string[], city: string, country: string): Promise<(number | null)[] | null> {
+      const place = resolveLocation(city, country);
+      if (!config.HH_ACCESS_TOKEN || !HH_COUNTRY_AREAS[place.country]) return null;
+      const area = await hh.areaId(place.city, place.country);
+      return Promise.all(
+        titles.map((keyword) =>
+          hh
+            .search({ ...searchSchema.parse({ keyword, country: place.country }), area }, 1)
+            .then((r) => r.total)
+            .catch(() => null),
+        ),
+      );
     },
     /** Make sure a job exists in the jobs table (for bookmarks). False if the DB rejects it. */
     async store(id: string): Promise<boolean> {

@@ -221,6 +221,7 @@ export const searchSchema = z
 export const jobIdSchema = z
   .string()
   .regex(/^(hh-\d{1,16}|[a-z]{3,12}-[a-f0-9]{32})$/);
+export const rolesRequestSchema = z.object({ language: languageSchema }).strict();
 export const jobRequestSchema = z
   .object({ jobId: jobIdSchema, language: languageSchema })
   .strict();
@@ -249,6 +250,33 @@ export type Language = z.infer<typeof languageSchema>;
 export type Profile = z.infer<typeof profileSchema>;
 export type SearchFilters = z.infer<typeof searchSchema>;
 export type Match = z.infer<typeof matchSchema>;
+/** Job titles to search for, picked from the saved resume. */
+export const aiRolesSchema = z.object({ roles: z.array(z.string()) }).strict();
+export const rolesResultSchema = z.object({ roles: z.array(z.string().max(60)).max(6), fallback: z.boolean() });
+export function clampRoles(roles: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of roles) {
+    const role = raw.replace(/\s+/g, " ").trim().slice(0, 60);
+    const key = role.toLocaleLowerCase();
+    if (!role || seen.has(key)) continue;
+    seen.add(key);
+    out.push(role);
+    if (out.length === 6) break;
+  }
+  return out;
+}
+/**
+ * The draft shows skipped and empty sections as "". When it is saved as the
+ * resume, sections the student answered in the interview stay marked as
+ * answered ("-"), so progress does not fall back below 100%.
+ */
+export function publishedProfile(draft: Profile, facts: Profile): Profile {
+  const out = { ...draft };
+  for (const field of INTERVIEW_STEPS)
+    if (!out[field]?.trim() && facts[field]?.trim()) out[field] = isSkipped(facts[field]) ? SKIPPED : facts[field];
+  return out;
+}
 export function clampMatch(value: z.infer<typeof aiMatchSchema>): Match {
   const list = (items: string[]) =>
     items.map((x) => x.trim().slice(0, 120)).filter(Boolean).slice(0, 20);

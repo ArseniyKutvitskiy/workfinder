@@ -9,6 +9,8 @@ import {
   aiParseSchema,
   aiComposeSchema,
   aiMatchSchema,
+  aiRolesSchema,
+  clampRoles,
   clampMatch,
   clampProfile,
   profileReadiness,
@@ -20,6 +22,7 @@ import {
   parsePrompt,
   matchPrompt,
   letterPrompt,
+  rolesPrompt,
 } from "./prompts.ts";
 import { HttpError } from "../errors.ts";
 export function createLLM(config: Config) {
@@ -170,6 +173,11 @@ export function createLLM(config: Config) {
       }
       const { message, ...fields } = result;
       return { message: message.trim().slice(0, 2000), draft: clampProfile(fields) };
+    },
+    /** Job titles to search for, picked from the saved resume. */
+    async roles(profile: Profile, language: string) {
+      const { roles } = await structured(rolesPrompt(language), { profile }, aiRolesSchema, "roles", undefined, TIMEOUT.match, 400);
+      return clampRoles(roles);
     },
     match: async (profile: Profile, job: Job, language: string) =>
       clampMatch(

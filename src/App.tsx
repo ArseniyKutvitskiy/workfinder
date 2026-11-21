@@ -86,6 +86,7 @@ export default function App() {
     personalDefaults,
     jobNotice,
     published,
+    roles,
     draft,
     language,
     aiMode,
@@ -96,8 +97,10 @@ export default function App() {
   const closeConfirmation = useCallback(() => setConfirmation(null), [setConfirmation]);
   // Jobs are shown only for a published resume (saved jobs are always available).
   const jobsLocked = !published && (view === "jobs" || view === "overview");
+  // Picking another role from the resume is still "my matches"; other filters are changes.
   const filtersChanged =
-    JSON.stringify(filters) !== JSON.stringify(personalDefaults);
+    JSON.stringify({ ...filters, keyword: "" }) !== JSON.stringify({ ...personalDefaults, keyword: "" }) ||
+    !(roles?.length ? roles.includes(filters.keyword) : filters.keyword === personalDefaults.keyword);
   if (loadError) return <SplashError message={loadError} onSignOut={signOut} />;
   if (!ready) return <Splash stage="data" />;
   return (
@@ -277,7 +280,7 @@ export default function App() {
                 <p className="match-note">
                   <Sparkles size={15} aria-hidden="true" />
                   {t("Matched to your resume: {role} · {place}", {
-                    role: personalDefaults.keyword || t("any role"),
+                    role: filters.keyword || t("any role"),
                     place:
                       [personalDefaults.city, countryName(personalDefaults.country, language)]
                         .filter(Boolean)
@@ -287,18 +290,34 @@ export default function App() {
               )}
               {view === "jobs" && !jobsLocked && (
                 <section className="filters" aria-label={t("Search jobs")}>
-                  <label className="search-field">
-                    <Search size={18} aria-hidden="true" />
-                    <input
-                      type="search"
-                      aria-label={t("Search jobs")}
-                      placeholder={t("Job title, company, or skill")}
-                      value={filters.keyword}
-                      onChange={(e) =>
-                        setFilters({ ...filters, keyword: e.target.value })
-                      }
-                    />
-                  </label>
+                  <div className="role-picker">
+                    <span className="role-picker-label">
+                      <Search size={16} aria-hidden="true" />
+                      {t("Roles from your resume")}
+                    </span>
+                    {roles === null ? (
+                      <span className="small muted">{t("Picking roles for your resume…")}</span>
+                    ) : (
+                      <div className="role-chips" role="radiogroup" aria-label={t("Roles from your resume")}>
+                        {(roles.length ? roles : [personalDefaults.keyword].filter(Boolean)).map((role) => (
+                          <button
+                            key={role}
+                            type="button"
+                            role="radio"
+                            aria-checked={filters.keyword === role}
+                            className={filters.keyword === role ? "active" : ""}
+                            onClick={() => setFilters({ ...filters, keyword: role })}
+                          >
+                            {role}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <button type="button" className="text-button role-picker-change" onClick={() => navigate("chat")}>
+                      <Sparkles size={14} aria-hidden="true" />
+                      {t("Change via the assistant")}
+                    </button>
+                  </div>
                   <div className="filter-grid">
                     <label className="field">
                       <span>{t("Country")}</span>

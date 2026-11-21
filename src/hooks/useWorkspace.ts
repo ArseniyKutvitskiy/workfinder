@@ -80,7 +80,11 @@ export function useWorkspace() {
   const readiness = profileReadiness(profile),
     completed = readiness.filled,
     percent = readiness.percent;
-  const personalDefaults = personalFilters(profile);
+  // Job titles chosen from the saved resume; null while they load.
+  const [roles, setRoles] = useState<string[] | null>(null);
+  const publishedNow = isPublished(messages);
+  const personalBase = personalFilters(profile);
+  const personalDefaults = { ...personalBase, keyword: roles?.[0] ?? personalBase.keyword };
   const selected = selectedSnapshot && {
     ...selectedSnapshot,
     ...(analysis?.id === selectedId && analysis?.language === language
@@ -160,6 +164,25 @@ export function useWorkspace() {
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty, dirtyLetters]);
+  // Roles follow the saved resume: reload after it is published or edited.
+  const rolesKey = publishedNow ? JSON.stringify([profile.occupation, profile.skills, profile.experience, profile.education, language]) : "";
+  useEffect(() => {
+    if (!ready || !rolesKey) return;
+    if (dirty) return;
+    const controller = new AbortController();
+    setRoles(null);
+    api("roles", { language }, controller.signal)
+      .then((data) => setRoles(data.roles))
+      .catch((e) => {
+        if (e.name !== "AbortError") setRoles([]);
+      });
+    return () => controller.abort();
+  }, [ready, rolesKey]);
+  // The search keyword is always one of the resume's roles.
+  useEffect(() => {
+    if (!roles?.length) return;
+    setFilters((f) => (roles.includes(f.keyword) ? f : { ...f, keyword: roles[0] }));
+  }, [roles, filters.keyword]);
   useEffect(() => {
     if (!ready || !["overview", "jobs", "saved"].includes(view)) return;
     // Jobs are matched to the published resume; before that there is nothing to match.
@@ -171,6 +194,12 @@ export function useWorkspace() {
       setSources([]);
       return;
     }
+    // Wait for the resume's roles so the first search already uses them.
+    if (view !== "saved" && roles === null) {
+      setLoading(true);
+      return;
+    }
+    if (view !== "saved" && roles?.length && !roles.includes(filters.keyword)) return;
     const controller = new AbortController();
     setLoading(true);
     setJobError("");
@@ -207,7 +236,7 @@ export function useWorkspace() {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [ready, filters, view, page, retry, isPublished(messages)]);
+  }, [ready, filters, view, page, retry, isPublished(messages), roles]);
   useEffect(() => {
     chatEnd.current?.scrollIntoView({
       behavior: "smooth",
@@ -650,6 +679,7 @@ export function useWorkspace() {
     readiness,
     personalDefaults,
     published: isPublished(messages),
+    roles,
     draft: latestDraft(messages),
     composeResume: () => send(null, { text: t("Compose my resume"), action: "compose" }),
     publishResume: () => send(null, { text: t("Publish my resume"), action: "publish" }),

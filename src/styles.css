@@ -4216,3 +4216,57 @@ footer {
   position: sticky;
   top: 100vh;
 }
+
+/* Jobs: the search keyword is one of the roles picked from the resume. */
+.role-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fbfcfa;
+}
+.role-picker-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.role-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 1 1 320px;
+}
+.role-chips button {
+  padding: 7px 13px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.role-chips button:hover {
+  border-color: var(--brand);
+}
+.role-chips button.active {
+  border-color: var(--brand);
+  background: var(--brand);
+  color: #fff;
+}
+.role-picker-change {
+  margin-left: auto;
+  font-size: 13px;
+}
+@media (max-width: 640px) {
+  .role-picker-change {
+    margin-left: 0;
+  }
+}
